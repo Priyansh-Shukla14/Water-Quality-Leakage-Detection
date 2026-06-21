@@ -76,17 +76,6 @@ export default function LandingPage() {
                 <Monitor size={18} /> Open Dashboard <ArrowRight size={16} />
               </button>
             </Link>
-            <a href="https://github.com/Priyansh-Shukla14/water-quality-monitoring" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-              <button style={{
-                display: 'flex', alignItems: 'center', gap: '8px',
-                padding: '14px 24px', borderRadius: '12px', fontSize: '15px', fontWeight: 600,
-                background: 'var(--bg-card)', color: 'var(--text-secondary)',
-                border: '1px solid var(--border-color)', cursor: 'pointer',
-                transition: 'all 0.2s ease',
-              }}>
-                <ExternalLink size={17} /> View on GitHub
-              </button>
-            </a>
           </div>
 
           <div style={{ marginTop: '72px', animation: 'float 3s ease-in-out infinite' }}>
