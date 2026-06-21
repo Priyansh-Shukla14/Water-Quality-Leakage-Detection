@@ -1,162 +1,126 @@
 import { Link } from 'react-router-dom';
 import {
-  Droplets,
-  FlaskConical,
-  Eye,
-  ShieldAlert,
-  Waves,
-  Bell,
-  Monitor,
-  ArrowRight,
-  Cpu,
-  Wifi,
-  ExternalLink,
-  ChevronDown,
+  Droplets, FlaskConical, Eye, ShieldAlert, Waves, Bell, Monitor,
+  ArrowRight, Cpu, Wifi, ExternalLink, ChevronDown,
 } from 'lucide-react';
 import { FEATURES, TECH_STACK, TEAM_MEMBERS } from '../utils/constants';
 
-const iconMap = {
-  FlaskConical,
-  Eye,
-  ShieldAlert,
-  Waves,
-  Bell,
-  Monitor,
+const iconMap = { FlaskConical, Eye, ShieldAlert, Waves, Bell, Monitor };
+
+const S = {
+  section: (bg) => ({
+    padding: '96px 24px',
+    background: bg || 'transparent',
+  }),
+  inner: {
+    maxWidth: '1100px',
+    margin: '0 auto',
+  },
+  badge: {
+    display: 'inline-flex', alignItems: 'center', gap: '8px',
+    padding: '6px 16px', borderRadius: '999px', marginBottom: '28px',
+    background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.25)',
+  },
+  badgeText: { fontSize: '12px', fontWeight: 700, color: '#06b6d4', letterSpacing: '0.05em' },
+  sectionLabel: { fontSize: '12px', fontWeight: 700, color: '#06b6d4', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 10px' },
+  sectionTitle: { fontSize: '36px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 14px', letterSpacing: '-0.5px', lineHeight: 1.2 },
+  sectionSub: { fontSize: '16px', color: 'var(--text-secondary)', margin: '0 auto', maxWidth: '600px', lineHeight: 1.7 },
 };
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen pt-16">
-      {/* Hero Section */}
-      <section
-        className="relative overflow-hidden"
-        style={{ minHeight: 'calc(100vh - 64px)' }}
-      >
-        {/* Background gradient orbs */}
-        <div
-          className="absolute top-20 -left-32 w-96 h-96 rounded-full blur-3xl opacity-20"
-          style={{ background: 'linear-gradient(135deg, #06b6d4, #14b8a6)' }}
-        />
-        <div
-          className="absolute bottom-20 -right-32 w-96 h-96 rounded-full blur-3xl opacity-15"
-          style={{ background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)' }}
-        />
+    <div style={{ paddingTop: '64px' }}>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 flex flex-col items-center justify-center text-center"
-          style={{ minHeight: 'calc(100vh - 64px)' }}
-        >
-          {/* Badge */}
-          <div
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-8 animate-fade-in-up"
-            style={{
-              background: 'rgba(6, 182, 212, 0.08)',
-              border: '1px solid rgba(6, 182, 212, 0.2)',
-            }}
-          >
-            <Cpu size={14} color="#06b6d4" />
-            <span className="text-xs font-semibold" style={{ color: '#06b6d4' }}>
-              ESP32-Powered IoT System
-            </span>
+      {/* ── Hero ── */}
+      <section style={{
+        minHeight: 'calc(100vh - 64px)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        textAlign: 'center', padding: '80px 24px',
+        position: 'relative', overflow: 'hidden',
+      }}>
+        {/* Background orbs */}
+        <div style={{ position: 'absolute', top: '80px', left: '-80px', width: '360px', height: '360px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(6,182,212,0.15), transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: '80px', right: '-80px', width: '360px', height: '360px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.12), transparent 70%)', pointerEvents: 'none' }} />
+
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={S.badge}>
+            <Cpu size={13} color="#06b6d4" />
+            <span style={S.badgeText}>ESP32-Powered IoT System</span>
           </div>
 
-          {/* Title */}
-          <h1
-            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-tight tracking-tight animate-fade-in-up"
-            style={{ color: 'var(--text-primary)', animationDelay: '0.1s' }}
-          >
-            Water Quality &
-            <br />
-            <span className="gradient-text">Leakage Monitoring</span>
-            <br />
-            System
+          <h1 style={{
+            fontSize: 'clamp(36px, 7vw, 68px)', fontWeight: 900, letterSpacing: '-1.5px',
+            lineHeight: 1.1, color: 'var(--text-primary)', margin: '0 0 24px',
+          }}>
+            Water Quality &amp;<br />
+            <span style={{ background: 'linear-gradient(135deg, #06b6d4, #14b8a6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+              Leakage Monitoring
+            </span>
+            <br />System
           </h1>
 
-          {/* Subtitle */}
-          <p
-            className="max-w-2xl mt-6 text-lg sm:text-xl leading-relaxed animate-fade-in-up"
-            style={{ color: 'var(--text-secondary)', animationDelay: '0.2s' }}
-          >
-            Real-time IoT dashboard for monitoring water quality parameters and detecting
-            tank leakage using ESP32 microcontroller with advanced sensor integration.
+          <p style={{ fontSize: '18px', color: 'var(--text-secondary)', maxWidth: '560px', lineHeight: 1.7, margin: '0 auto 40px' }}>
+            Real-time IoT dashboard for monitoring water quality parameters and detecting tank leakage using ESP32 microcontroller with advanced sensor integration.
           </p>
 
-          {/* CTA Buttons */}
-          <div
-            className="flex flex-col sm:flex-row items-center gap-4 mt-10 animate-fade-in-up"
-            style={{ animationDelay: '0.3s' }}
-          >
-            <Link to="/dashboard" className="no-underline">
-              <button className="gradient-btn flex items-center gap-2 text-base">
-                <Monitor size={18} />
-                Open Dashboard
-                <ArrowRight size={16} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px', flexWrap: 'wrap' }}>
+            <Link to="/dashboard" style={{ textDecoration: 'none' }}>
+              <button style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                padding: '14px 28px', borderRadius: '12px', fontSize: '15px', fontWeight: 700,
+                background: 'linear-gradient(135deg, #06b6d4, #14b8a6)',
+                color: 'white', border: 'none', cursor: 'pointer',
+                boxShadow: '0 4px 20px rgba(6,182,212,0.4)',
+                transition: 'all 0.2s ease',
+              }}>
+                <Monitor size={18} /> Open Dashboard <ArrowRight size={16} />
               </button>
             </Link>
-            <a
-              href="https://github.com/Priyansh-Shukla14"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="no-underline"
-            >
-              <button
-                className="flex items-center gap-2 px-7 py-3 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer"
-                style={{
-                  background: 'var(--bg-card)',
-                  color: 'var(--text-secondary)',
-                  border: '1px solid var(--border-color)',
-                }}
-              >
-                <ExternalLink size={18} />
-                View on GitHub
+            <a href="https://github.com/Priyansh-Shukla14/water-quality-monitoring" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+              <button style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                padding: '14px 24px', borderRadius: '12px', fontSize: '15px', fontWeight: 600,
+                background: 'var(--bg-card)', color: 'var(--text-secondary)',
+                border: '1px solid var(--border-color)', cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}>
+                <ExternalLink size={17} /> View on GitHub
               </button>
             </a>
           </div>
 
-          {/* Scroll indicator */}
-          <div className="absolute bottom-8 animate-float">
-            <ChevronDown size={24} color="var(--text-tertiary)" />
+          <div style={{ marginTop: '72px', animation: 'float 3s ease-in-out infinite' }}>
+            <ChevronDown size={22} color="var(--text-tertiary)" />
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-24 px-4 sm:px-6" style={{ background: 'var(--bg-secondary)' }}>
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <p className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: '#06b6d4' }}>
-              Features
-            </p>
-            <h2 className="section-heading" style={{ color: 'var(--text-primary)' }}>
-              Comprehensive Monitoring
-            </h2>
-            <p className="max-w-2xl mx-auto mt-4 text-base" style={{ color: 'var(--text-secondary)' }}>
-              A complete solution for water quality assessment and leakage detection
-              with real-time data visualization and intelligent alerts.
-            </p>
+      {/* ── Features ── */}
+      <section style={{ ...S.section('var(--bg-secondary)') }}>
+        <div style={S.inner}>
+          <div style={{ textAlign: 'center', marginBottom: '56px' }}>
+            <p style={S.sectionLabel}>Features</p>
+            <h2 style={S.sectionTitle}>Comprehensive Monitoring</h2>
+            <p style={S.sectionSub}>A complete solution for water quality assessment and leakage detection with real-time data visualization and intelligent alerts.</p>
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 stagger-children">
-            {FEATURES.map((feature, idx) => {
-              const FeatureIcon = iconMap[feature.icon] || Monitor;
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+            {FEATURES.map((f, i) => {
+              const Icon = iconMap[f.icon] || Monitor;
               return (
-                <div
-                  key={idx}
-                  className="glass-card p-6 group"
-                >
-                  <div
-                    className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110"
-                    style={{
-                      background: 'linear-gradient(135deg, rgba(6,182,212,0.1), rgba(20,184,166,0.1))',
-                    }}
-                  >
-                    <FeatureIcon size={24} color="#06b6d4" />
+                <div key={i} style={{
+                  background: 'var(--bg-card)', border: '1px solid var(--border-color)',
+                  borderRadius: '16px', padding: '24px',
+                  transition: 'box-shadow 0.2s ease, transform 0.2s ease',
+                }}>
+                  <div style={{
+                    width: '44px', height: '44px', borderRadius: '12px',
+                    background: 'rgba(6,182,212,0.1)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px',
+                  }}>
+                    <Icon size={22} color="#06b6d4" />
                   </div>
-                  <h3 className="text-lg font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
-                    {feature.title}
-                  </h3>
-                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                    {feature.description}
-                  </p>
+                  <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px' }}>{f.title}</h3>
+                  <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>{f.description}</p>
                 </div>
               );
             })}
@@ -164,191 +128,115 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Tech Stack Section */}
-      <section className="py-24 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <p className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: '#06b6d4' }}>
-              Technology
-            </p>
-            <h2 className="section-heading" style={{ color: 'var(--text-primary)' }}>
-              Built With Modern Stack
-            </h2>
-            <p className="max-w-2xl mx-auto mt-4 text-base" style={{ color: 'var(--text-secondary)' }}>
-              Combining cutting-edge IoT hardware with modern web technologies
-              for a seamless monitoring experience.
-            </p>
+      {/* ── Tech Stack ── */}
+      <section style={S.section()}>
+        <div style={S.inner}>
+          <div style={{ textAlign: 'center', marginBottom: '56px' }}>
+            <p style={S.sectionLabel}>Technology</p>
+            <h2 style={S.sectionTitle}>Built With Modern Stack</h2>
+            <p style={S.sectionSub}>Combining cutting-edge IoT hardware with modern web technologies for a seamless monitoring experience.</p>
           </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 stagger-children">
-            {TECH_STACK.map((tech, idx) => (
-              <div
-                key={idx}
-                className="glass-card p-4 text-center group"
-              >
-                <div className="text-3xl mb-2 transition-transform duration-300 group-hover:scale-125">
-                  {tech.icon}
-                </div>
-                <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                  {tech.name}
-                </p>
-                <p className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>
-                  {tech.category}
-                </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '14px' }}>
+            {TECH_STACK.map((t, i) => (
+              <div key={i} style={{
+                background: 'var(--bg-card)', border: '1px solid var(--border-color)',
+                borderRadius: '14px', padding: '20px 12px', textAlign: 'center',
+                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+              }}>
+                <div style={{ fontSize: '30px', marginBottom: '10px' }}>{t.icon}</div>
+                <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 2px' }}>{t.name}</p>
+                <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', margin: 0 }}>{t.category}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Architecture overview */}
-      <section className="py-24 px-4 sm:px-6" style={{ background: 'var(--bg-secondary)' }}>
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <p className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: '#06b6d4' }}>
-              Architecture
-            </p>
-            <h2 className="section-heading" style={{ color: 'var(--text-primary)' }}>
-              System Architecture
-            </h2>
+      {/* ── Architecture ── */}
+      <section style={{ ...S.section('var(--bg-secondary)') }}>
+        <div style={S.inner}>
+          <div style={{ textAlign: 'center', marginBottom: '56px' }}>
+            <p style={S.sectionLabel}>Architecture</p>
+            <h2 style={S.sectionTitle}>System Architecture</h2>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Hardware Layer */}
-            <div className="glass-card p-6 text-center">
-              <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
-                style={{ background: 'linear-gradient(135deg, #06b6d4, #0891b2)' }}
-              >
-                <Cpu size={32} color="white" />
-              </div>
-              <h3 className="text-lg font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
-                Hardware Layer
-              </h3>
-              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                ESP32 reads pH, Turbidity, and Water Level sensors. Controls Buzzer & Relay for alerts.
-              </p>
-              <div className="flex flex-wrap justify-center gap-2 mt-4">
-                {['ESP32', 'pH', 'Turbidity', 'Level', 'Buzzer', 'Relay'].map(t => (
-                  <span
-                    key={t}
-                    className="px-2.5 py-1 rounded-lg text-xs font-medium"
-                    style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
-                  >
-                    {t}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Communication */}
-            <div className="glass-card p-6 text-center">
-              <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
-                style={{ background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)' }}
-              >
-                <Wifi size={32} color="white" />
-              </div>
-              <h3 className="text-lg font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
-                Communication
-              </h3>
-              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                ESP32 sends data over WiFi via HTTP REST API. Supports real-time polling and push updates.
-              </p>
-              <div className="flex flex-wrap justify-center gap-2 mt-4">
-                {['WiFi', 'REST API', 'HTTP', 'JSON', 'Polling'].map(t => (
-                  <span
-                    key={t}
-                    className="px-2.5 py-1 rounded-lg text-xs font-medium"
-                    style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
-                  >
-                    {t}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Dashboard */}
-            <div className="glass-card p-6 text-center">
-              <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
-                style={{ background: 'linear-gradient(135deg, #14b8a6, #0d9488)' }}
-              >
-                <Monitor size={32} color="white" />
-              </div>
-              <h3 className="text-lg font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
-                Web Dashboard
-              </h3>
-              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                React + Vite dashboard with real-time charts, alerts, and responsive design for any device.
-              </p>
-              <div className="flex flex-wrap justify-center gap-2 mt-4">
-                {['React', 'Vite', 'Recharts', 'Tailwind', 'Responsive'].map(t => (
-                  <span
-                    key={t}
-                    className="px-2.5 py-1 rounded-lg text-xs font-medium"
-                    style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
-                  >
-                    {t}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Team Section */}
-      <section className="py-24 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <p className="text-sm font-bold tracking-widest uppercase mb-3" style={{ color: '#06b6d4' }}>
-              Team
-            </p>
-            <h2 className="section-heading" style={{ color: 'var(--text-primary)' }}>
-              Meet the Team
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 stagger-children">
-            {TEAM_MEMBERS.map((member, idx) => (
-              <div key={idx} className="glass-card p-6 text-center group">
-                <div
-                  className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 text-4xl transition-transform duration-300 group-hover:scale-110"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(6,182,212,0.1), rgba(20,184,166,0.1))',
-                  }}
-                >
-                  {member.avatar}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+            {[
+              { icon: Cpu, title: 'Hardware Layer', color: '#06b6d4', desc: 'ESP32 reads pH, Turbidity & Water Level sensors. Controls Buzzer & Relay for alerts.', tags: ['ESP32','pH','Turbidity','Level','Buzzer','Relay'] },
+              { icon: Wifi, title: 'Communication', color: '#8b5cf6', desc: 'ESP32 sends data over WiFi via HTTP REST API. Supports real-time polling and push updates.', tags: ['WiFi','REST API','HTTP','JSON','Polling'] },
+              { icon: Monitor, title: 'Web Dashboard', color: '#14b8a6', desc: 'React + Vite dashboard with real-time charts, alerts, and responsive design for any device.', tags: ['React','Vite','Recharts','Tailwind','Responsive'] },
+            ].map((item, i) => (
+              <div key={i} style={{
+                background: 'var(--bg-card)', border: '1px solid var(--border-color)',
+                borderRadius: '16px', padding: '28px', textAlign: 'center',
+              }}>
+                <div style={{
+                  width: '60px', height: '60px', borderRadius: '16px',
+                  background: `linear-gradient(135deg, ${item.color}, ${item.color}bb)`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  margin: '0 auto 18px',
+                  boxShadow: `0 8px 24px ${item.color}33`,
+                }}>
+                  <item.icon size={28} color="white" />
                 </div>
-                <h3 className="font-bold text-base" style={{ color: 'var(--text-primary)' }}>
-                  {member.name}
-                </h3>
-                <p className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>
-                  {member.role}
-                </p>
+                <h3 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 10px' }}>{item.title}</h3>
+                <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 16px' }}>{item.desc}</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '6px' }}>
+                  {item.tags.map(t => (
+                    <span key={t} style={{
+                      padding: '3px 10px', borderRadius: '999px', fontSize: '11px', fontWeight: 600,
+                      background: 'var(--bg-tertiary)', color: 'var(--text-secondary)',
+                    }}>{t}</span>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer
-        className="py-8 px-4 text-center"
-        style={{
-          background: 'var(--bg-secondary)',
-          borderTop: '1px solid var(--border-color)',
-        }}
-      >
-        <div className="flex items-center justify-center gap-2 mb-2">
+      {/* ── Team ── */}
+      <section style={S.section()}>
+        <div style={S.inner}>
+          <div style={{ textAlign: 'center', marginBottom: '56px' }}>
+            <p style={S.sectionLabel}>Team</p>
+            <h2 style={S.sectionTitle}>Meet the Team</h2>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
+            {TEAM_MEMBERS.map((m, i) => (
+              <div key={i} style={{
+                background: 'var(--bg-card)', border: '1px solid var(--border-color)',
+                borderRadius: '16px', padding: '28px 20px', textAlign: 'center',
+              }}>
+                <div style={{
+                  width: '72px', height: '72px', borderRadius: '50%',
+                  background: 'linear-gradient(135deg, rgba(6,182,212,0.15), rgba(20,184,166,0.15))',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  margin: '0 auto 14px', fontSize: '36px',
+                }}>
+                  {m.avatar}
+                </div>
+                <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 4px' }}>{m.name}</h3>
+                <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', margin: 0 }}>{m.role}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Footer ── */}
+      <footer style={{
+        padding: '32px 24px', textAlign: 'center',
+        background: 'var(--bg-secondary)',
+        borderTop: '1px solid var(--border-color)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px' }}>
           <Droplets size={18} color="#06b6d4" />
-          <span className="font-bold" style={{ color: 'var(--text-primary)' }}>
-            Aqua<span className="gradient-text">Guard</span>
+          <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+            Aqua<span style={{ background: 'linear-gradient(135deg,#06b6d4,#14b8a6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Guard</span>
           </span>
         </div>
-        <p className="text-sm" style={{ color: 'var(--text-tertiary)' }}>
-          © {new Date().getFullYear()} Water Quality & Leakage Monitoring System. Engineering Project.
+        <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', margin: 0 }}>
+          © {new Date().getFullYear()} Water Quality &amp; Leakage Monitoring System. Engineering Project.
         </p>
       </footer>
     </div>

@@ -1,213 +1,169 @@
-import { AlertTriangle, CheckCircle, Clock, Droplets, TrendingDown } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, Droplets, TrendingDown, Activity } from 'lucide-react';
 import { formatTimestamp } from '../utils/helpers';
-import { mockLeakageEvents } from '../utils/mockData';
+
+const mockEvents = [
+  { id: 1, type: 'warning', message: 'Water level dropped below 35%', time: '2 min ago', level: 34.2 },
+  { id: 2, type: 'danger',  message: 'Leakage detected — relay activated', time: '5 min ago', level: 28.1 },
+  { id: 3, type: 'success', message: 'System returned to normal', time: '12 min ago', level: 71.5 },
+  { id: 4, type: 'warning', message: 'Rapid water level drop detected', time: '28 min ago', level: 41.0 },
+  { id: 5, type: 'info',    message: 'Monitoring started', time: '1 hr ago', level: 82.3 },
+];
+
+const typeColor = { danger: '#ef4444', warning: '#f59e0b', success: '#10b981', info: '#06b6d4' };
+const typeIcon  = { danger: AlertTriangle, warning: AlertTriangle, success: CheckCircle, info: Activity };
+
+function StatBox({ label, value, color = 'var(--text-primary)', sub }) {
+  return (
+    <div style={{
+      background: 'var(--bg-card)', border: '1px solid var(--border-color)',
+      borderRadius: '14px', padding: '20px',
+    }}>
+      <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: '0 0 6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
+      <p style={{ fontSize: '28px', fontWeight: 800, color, margin: '0 0 4px', fontFamily: 'monospace' }}>{value}</p>
+      {sub && <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: 0 }}>{sub}</p>}
+    </div>
+  );
+}
 
 export default function LeakageDetection({ data }) {
-  const leakageDetected = data?.leakageDetected;
+  const isLeaking = data?.leakageDetected;
+  const waterLevel = data?.waterLevel ?? 0;
 
   return (
-    <div className="space-y-6">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
+        <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 6px', letterSpacing: '-0.5px' }}>
           Leakage Detection
         </h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>
-          Monitor water tank integrity and detect abnormal water level drops.
+        <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: 0 }}>
+          Real-time water tank leakage monitoring and alert system
         </p>
       </div>
 
-      {/* Current Status Banner */}
-      <div
-        className="rounded-2xl p-6 animate-fade-in-up"
-        style={{
-          background: leakageDetected
-            ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.05))'
-            : 'linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05))',
-          border: `1px solid ${leakageDetected ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)'}`,
-        }}
-      >
-        <div className="flex items-center gap-4">
-          <div
-            className="w-16 h-16 rounded-2xl flex items-center justify-center"
-            style={{
-              background: leakageDetected
-                ? 'rgba(239, 68, 68, 0.15)'
-                : 'rgba(16, 185, 129, 0.15)',
-            }}
-          >
-            {leakageDetected ? (
-              <AlertTriangle size={32} color="#ef4444" />
-            ) : (
-              <CheckCircle size={32} color="#10b981" />
-            )}
+      {/* Status banner */}
+      <div style={{
+        padding: '20px 24px',
+        borderRadius: '16px',
+        background: isLeaking ? 'linear-gradient(135deg, #dc2626, #ef4444)' : 'linear-gradient(135deg, #059669, #10b981)',
+        display: 'flex', alignItems: 'center', gap: '16px',
+        boxShadow: isLeaking ? '0 0 32px rgba(239,68,68,0.3)' : '0 0 24px rgba(16,185,129,0.2)',
+      }}>
+        {isLeaking
+          ? <AlertTriangle size={32} color="white" />
+          : <CheckCircle size={32} color="white" />
+        }
+        <div>
+          <p style={{ fontWeight: 800, fontSize: '18px', color: 'white', margin: '0 0 4px' }}>
+            {isLeaking ? '⚠ Leakage Detected!' : '✓ System Normal'}
+          </p>
+          <p style={{ color: 'rgba(255,255,255,0.85)', margin: 0, fontSize: '13px' }}>
+            {isLeaking
+              ? 'Abnormal water level drop. Relay module activated. Buzzer sounding.'
+              : 'No anomalies detected. Water level is stable and within normal range.'}
+          </p>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
+        <StatBox label="Water Level" value={`${waterLevel.toFixed(1)}%`} color={waterLevel < 30 ? '#ef4444' : waterLevel < 50 ? '#f59e0b' : '#10b981'} sub="Current reading" />
+        <StatBox label="Relay Status" value={data?.relayStatus ? 'ON' : 'OFF'} color={data?.relayStatus ? '#06b6d4' : 'var(--text-tertiary)'} sub="Valve control" />
+        <StatBox label="Buzzer" value={data?.buzzerStatus ? 'ACTIVE' : 'SILENT'} color={data?.buzzerStatus ? '#f59e0b' : 'var(--text-tertiary)'} sub="Alert sound" />
+        <StatBox label="Leakage" value={isLeaking ? 'YES' : 'NO'} color={isLeaking ? '#ef4444' : '#10b981'} sub="Detection status" />
+      </div>
+
+      {/* Water level visual */}
+      <div style={{
+        background: 'var(--bg-card)', border: '1px solid var(--border-color)',
+        borderRadius: '16px', padding: '24px',
+      }}>
+        <p style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-primary)', margin: '0 0 16px' }}>
+          Water Level Gauge
+        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          {/* Tank visual */}
+          <div style={{
+            width: '80px', flexShrink: 0,
+            height: '140px', border: '3px solid var(--border-color)',
+            borderRadius: '8px', overflow: 'hidden', position: 'relative',
+            background: 'var(--bg-tertiary)',
+          }}>
+            <div style={{
+              position: 'absolute', bottom: 0, left: 0, right: 0,
+              height: `${Math.min(waterLevel, 100)}%`,
+              background: waterLevel < 30 ? 'linear-gradient(180deg, #ef4444, #dc2626)' : 'linear-gradient(180deg, #06b6d4, #14b8a6)',
+              transition: 'height 1s ease',
+            }} />
+            <div style={{
+              position: 'absolute', top: '50%', left: '50%',
+              transform: 'translate(-50%, -50%)',
+              fontSize: '13px', fontWeight: 700, color: 'white',
+              textShadow: '0 1px 3px rgba(0,0,0,0.5)',
+            }}>
+              {waterLevel.toFixed(0)}%
+            </div>
           </div>
-          <div>
-            <h2
-              className="text-xl font-bold"
-              style={{ color: leakageDetected ? '#ef4444' : '#10b981' }}
-            >
-              {leakageDetected ? '⚠️ Leakage Detected!' : '✅ No Leakage Detected'}
-            </h2>
-            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-              {leakageDetected
-                ? `Water level is critically low at ${data?.waterLevel?.toFixed(1)}%. Immediate action required.`
-                : `Water level is stable at ${data?.waterLevel?.toFixed(1)}%. System operating normally.`}
-            </p>
-            <div className="flex items-center gap-2 mt-2">
-              <Clock size={12} color="var(--text-tertiary)" />
-              <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                {formatTimestamp(data?.timestamp)}
-              </span>
+          {/* Level bar */}
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Level</span>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>{waterLevel.toFixed(1)}%</span>
+            </div>
+            <div style={{ height: '12px', background: 'var(--bg-tertiary)', borderRadius: '999px', overflow: 'hidden', marginBottom: '8px' }}>
+              <div style={{
+                height: '100%',
+                width: `${Math.min(waterLevel, 100)}%`,
+                background: waterLevel < 30 ? '#ef4444' : 'linear-gradient(90deg, #06b6d4, #14b8a6)',
+                borderRadius: '999px', transition: 'width 1s ease',
+              }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '11px', color: '#ef4444', fontWeight: 600 }}>Critical &lt;30%</span>
+              <span style={{ fontSize: '11px', color: '#f59e0b', fontWeight: 600 }}>Warning &lt;50%</span>
+              <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600 }}>Normal &gt;50%</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Alert notification if leakage */}
-      {leakageDetected && (
-        <div className="leakage-banner flex items-center gap-3 animate-fade-in-up">
-          <AlertTriangle size={22} color="white" />
-          <div>
-            <p className="font-bold">Warning: Abnormal Water Level Drop</p>
-            <p className="text-sm opacity-90">
-              Buzzer and relay have been activated. Check for physical leaks in the tank.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Current readings */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="glass-card p-5 animate-fade-in-up">
-          <div className="flex items-center gap-3 mb-3">
-            <Droplets size={20} color="#06b6d4" />
-            <span className="text-sm font-medium" style={{ color: 'var(--text-tertiary)' }}>
-              Current Level
-            </span>
-          </div>
-          <p className="text-3xl font-bold font-mono" style={{ color: 'var(--text-primary)' }}>
-            {data?.waterLevel?.toFixed(1)}
-            <span className="text-sm font-normal ml-1" style={{ color: 'var(--text-tertiary)' }}>%</span>
-          </p>
-          <div className="mt-3 progress-track">
-            <div
-              className="progress-fill"
-              style={{
-                width: `${data?.waterLevel || 0}%`,
-                background: leakageDetected
-                  ? 'linear-gradient(90deg, #ef4444, #dc2626)'
-                  : 'linear-gradient(90deg, #06b6d4, #14b8a6)',
-              }}
-            />
-          </div>
-        </div>
-
-        <div className="glass-card p-5 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-          <div className="flex items-center gap-3 mb-3">
-            <TrendingDown size={20} color={leakageDetected ? '#ef4444' : '#10b981'} />
-            <span className="text-sm font-medium" style={{ color: 'var(--text-tertiary)' }}>
-              Detection Threshold
-            </span>
-          </div>
-          <p className="text-3xl font-bold font-mono" style={{ color: 'var(--text-primary)' }}>
-            15
-            <span className="text-sm font-normal ml-1" style={{ color: 'var(--text-tertiary)' }}>% drop</span>
-          </p>
-          <p className="text-xs mt-2" style={{ color: 'var(--text-tertiary)' }}>
-            Alert triggers when level drops &gt;15% per cycle
-          </p>
-        </div>
-
-        <div className="glass-card p-5 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-          <div className="flex items-center gap-3 mb-3">
-            <AlertTriangle size={20} color="#f59e0b" />
-            <span className="text-sm font-medium" style={{ color: 'var(--text-tertiary)' }}>
-              Critical Low
-            </span>
-          </div>
-          <p className="text-3xl font-bold font-mono" style={{ color: 'var(--text-primary)' }}>
-            10
-            <span className="text-sm font-normal ml-1" style={{ color: 'var(--text-tertiary)' }}>%</span>
-          </p>
-          <p className="text-xs mt-2" style={{ color: 'var(--text-tertiary)' }}>
-            Emergency alert below 10% water level
-          </p>
+      {/* Event log */}
+      <div style={{
+        background: 'var(--bg-card)', border: '1px solid var(--border-color)',
+        borderRadius: '16px', padding: '24px',
+      }}>
+        <p style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-primary)', margin: '0 0 16px' }}>
+          Recent Events
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {mockEvents.map(evt => {
+            const color = typeColor[evt.type];
+            const Icon = typeIcon[evt.type];
+            return (
+              <div key={evt.id} style={{
+                display: 'flex', alignItems: 'center', gap: '12px',
+                padding: '12px 14px', borderRadius: '10px',
+                background: 'var(--bg-tertiary)',
+              }}>
+                <div style={{
+                  width: '32px', height: '32px', borderRadius: '8px',
+                  background: `${color}18`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}>
+                  <Icon size={16} color={color} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ margin: 0, fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{evt.message}</p>
+                  <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-tertiary)' }}>Level: {evt.level}%</p>
+                </div>
+                <span style={{ fontSize: '12px', color: 'var(--text-tertiary)', flexShrink: 0 }}>{evt.time}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Leakage Event History */}
-      <div className="glass-card p-6 animate-fade-in-up">
-        <h3 className="text-lg font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
-          Recent Leakage Events
-        </h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                <th className="text-left py-3 px-2 font-semibold" style={{ color: 'var(--text-tertiary)' }}>
-                  Timestamp
-                </th>
-                <th className="text-left py-3 px-2 font-semibold" style={{ color: 'var(--text-tertiary)' }}>
-                  Level Before
-                </th>
-                <th className="text-left py-3 px-2 font-semibold" style={{ color: 'var(--text-tertiary)' }}>
-                  Level After
-                </th>
-                <th className="text-left py-3 px-2 font-semibold" style={{ color: 'var(--text-tertiary)' }}>
-                  Drop
-                </th>
-                <th className="text-left py-3 px-2 font-semibold" style={{ color: 'var(--text-tertiary)' }}>
-                  Duration
-                </th>
-                <th className="text-left py-3 px-2 font-semibold" style={{ color: 'var(--text-tertiary)' }}>
-                  Status
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {mockLeakageEvents.map((event) => (
-                <tr
-                  key={event.id}
-                  style={{ borderBottom: '1px solid var(--border-color)' }}
-                >
-                  <td className="py-3 px-2 font-mono text-xs" style={{ color: 'var(--text-primary)' }}>
-                    {formatTimestamp(event.timestamp)}
-                  </td>
-                  <td className="py-3 px-2" style={{ color: 'var(--text-primary)' }}>
-                    {event.waterLevelBefore}%
-                  </td>
-                  <td className="py-3 px-2" style={{ color: 'var(--text-primary)' }}>
-                    {event.waterLevelAfter}%
-                  </td>
-                  <td className="py-3 px-2">
-                    <span
-                      className="px-2 py-0.5 rounded-full text-xs font-bold"
-                      style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}
-                    >
-                      -{event.drop}%
-                    </span>
-                  </td>
-                  <td className="py-3 px-2" style={{ color: 'var(--text-secondary)' }}>
-                    {event.duration}
-                  </td>
-                  <td className="py-3 px-2">
-                    <span
-                      className="px-2.5 py-1 rounded-full text-xs font-bold"
-                      style={{
-                        background: event.resolved ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                        color: event.resolved ? '#10b981' : '#ef4444',
-                      }}
-                    >
-                      {event.resolved ? 'Resolved' : 'Active'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
   );
 }

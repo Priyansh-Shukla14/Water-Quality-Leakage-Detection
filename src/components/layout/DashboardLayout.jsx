@@ -1,35 +1,33 @@
 import { Outlet } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Sidebar from './Sidebar';
 
+const SIDEBAR_EXPANDED = 240;
+const SIDEBAR_COLLAPSED = 72;
+
 export default function DashboardLayout({ isMock }) {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
-  useEffect(() => {
-    const check = () => setIsDesktop(window.innerWidth >= 1024);
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  }, []);
-
-  const sidebarWidth = sidebarCollapsed ? 72 : 240;
+  const sidebarWidth = collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED;
 
   return (
-    <div className="flex min-h-screen pt-16">
+    <div style={{ paddingTop: '64px', minHeight: '100vh', background: 'var(--bg-primary)' }}>
       <Sidebar
         isMock={isMock}
-        collapsed={sidebarCollapsed}
-        onToggleCollapse={() => setSidebarCollapsed(prev => !prev)}
+        collapsed={collapsed}
+        onToggleCollapse={() => setCollapsed(p => !p)}
       />
+      {/* Main content — always offset by sidebar width on lg+ screens */}
       <main
-        className="flex-1 w-0 transition-all duration-300"
         style={{
+          marginLeft: `${sidebarWidth}px`,
+          minHeight: 'calc(100vh - 64px)',
           background: 'var(--bg-primary)',
-          marginLeft: isDesktop ? `${sidebarWidth}px` : '0',
+          transition: 'margin-left 0.3s ease',
+          overflowX: 'hidden',
         }}
       >
-        <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 24px' }}>
           <Outlet />
         </div>
       </main>
