@@ -182,36 +182,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
-      {/* ── Team ── */}
-      <section style={S.section()}>
-        <div style={S.inner}>
-          <div style={{ textAlign: 'center', marginBottom: '56px' }}>
-            <p style={S.sectionLabel}>Team</p>
-            <h2 style={S.sectionTitle}>Meet the Team</h2>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
-            {TEAM_MEMBERS.map((m, i) => (
-              <div key={i} style={{
-                background: 'var(--bg-card)', border: '1px solid var(--border-color)',
-                borderRadius: '16px', padding: '28px 20px', textAlign: 'center',
-              }}>
-                <div style={{
-                  width: '72px', height: '72px', borderRadius: '50%',
-                  background: 'linear-gradient(135deg, rgba(6,182,212,0.15), rgba(20,184,166,0.15))',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  margin: '0 auto 14px', fontSize: '36px',
-                }}>
-                  {m.avatar}
-                </div>
-                <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 4px' }}>{m.name}</h3>
-                <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', margin: 0 }}>{m.role}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ── Footer ── */}
       <footer style={{
         padding: '32px 24px', textAlign: 'center',
