@@ -1,5 +1,5 @@
 import {
-  FlaskConical, Eye, Waves, Thermometer,
+  FlaskConical, Eye, Waves,
   RefreshCw, Clock, Zap, Volume2,
   CheckCircle, AlertTriangle,
 } from 'lucide-react';
@@ -217,8 +217,6 @@ export default function Dashboard({ data, loading, isMock, onRefresh }) {
         <MetricCard icon={Waves} title="Water Level" value={data?.waterLevel?.toFixed(1)} unit="%" color={levelColor} subtitle="Normal: > 30%">
           <ProgressBar value={data?.waterLevel} color={levelColor} />
         </MetricCard>
-
-        <MetricCard icon={Thermometer} title="Temperature" value={data?.temperature?.toFixed(1)} unit="°C" color="#f59e0b" subtitle="Ambient reading" />
       </div>
 
       {/* Quality + Status row */}

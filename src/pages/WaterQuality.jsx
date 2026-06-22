@@ -87,7 +87,6 @@ export default function WaterQuality({ data }) {
         <QualityMeter label="pH Level" value={data?.ph} max={14} color="#06b6d4" unit="" />
         <QualityMeter label="Turbidity" value={data?.turbidity} max={50} color="#8b5cf6" unit=" NTU" />
         <QualityMeter label="Water Level" value={data?.waterLevel} max={100} color="#10b981" unit="%" />
-        <QualityMeter label="Temperature" value={data?.temperature} max={50} color="#f59e0b" unit="°C" />
       </div>
 
       {/* Reference criteria table */}
