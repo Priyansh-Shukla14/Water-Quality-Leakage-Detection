@@ -19,7 +19,9 @@ app.use(express.json());
 let latestSensorData = {
   ph: 7.0,
   turbidity: 0.0,
-  waterLevel: 50.0,
+  waterLevel: 0.0,
+  waterLevelRaw: 0,
+  waterLevelPct: 0.0,
   quality: "Good",
   leakageDetected: false,
   relayStatus: false,
@@ -61,7 +63,7 @@ app.get('/api/sensors/history', (req, res) => {
 
 // 3. POST /api/sensors/data - ESP32 sends sensor data here
 app.post('/api/sensors/data', (req, res) => {
-  const { ph, turbidity, waterLevel, leakageDetected, relayStatus, buzzerStatus } = req.body;
+  const { ph, turbidity, waterLevel, waterLevelRaw, waterLevelPct, leakageDetected, relayStatus, buzzerStatus } = req.body;
 
   if (ph === undefined || turbidity === undefined || waterLevel === undefined) {
     return res.status(400).json({
@@ -70,11 +72,12 @@ app.post('/api/sensors/data', (req, res) => {
     });
   }
 
-  // Update latest readings
   latestSensorData = {
     ph: Number(ph),
     turbidity: Number(turbidity),
     waterLevel: Number(waterLevel),
+    waterLevelRaw: Number(waterLevelRaw ?? 0),
+    waterLevelPct: Number(waterLevelPct ?? 0),
     quality: calculateQuality(Number(ph), Number(turbidity)),
     leakageDetected: !!leakageDetected,
     relayStatus: !!relayStatus,

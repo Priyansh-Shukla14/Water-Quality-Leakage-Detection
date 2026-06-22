@@ -39,7 +39,8 @@ const char* serverEndpoint = "http://10.243.110.149:3001/api/sensors/data";
 
 // ─── Pin Definitions ─────────────────────────────────────────────────────────
 #define PH_PIN                14   // Analog — pH sensor (PO pin)
-#define TURBIDITY_PIN         35   // Analog — SEN0189 turbidity (was D34, now D35)
+#define TURBIDITY_PIN         35   // Analog — SEN0189 turbidity
+#define ANALOG_LEVEL_PIN      39   // Analog — water level sensor (0–3.3V continuous)
 #define LEVEL_SENSOR_LOW_PIN  32   // Digital — bottom water level sensor
 #define LEVEL_SENSOR_HIGH_PIN 33   // Digital — top water level sensor
 #define RELAY_PIN             25   // Digital OUT — relay/pump control
@@ -66,12 +67,14 @@ const unsigned long levelCheckInterval = 10000; // Check for leakage every 10 se
 const float LEAKAGE_THRESHOLD_DROP_CM = 30.0; // cm drop within interval = leak
 
 // ─── State Variables ─────────────────────────────────────────────────────────
-float currentPh         = 7.0;
-float currentTurbidity  = 0.0;
-float currentWaterLevel = 0.0;   // in cm
-bool  relayState        = false;
-bool  buzzerState       = false;
-bool  leakageDetected   = false;
+float currentPh              = 7.0;
+float currentTurbidity       = 0.0;
+float currentWaterLevel      = 0.0;   // in cm (from digital sensors)
+int   currentWaterLevelRaw   = 0;     // raw ADC 0–4095 (from analog sensor)
+float currentWaterLevelPct   = 0.0;   // percentage 0–100% (from analog sensor)
+bool  relayState             = false;
+bool  buzzerState            = false;
+bool  leakageDetected        = false;
 
 float previousWaterLevel = 0.0;
 unsigned long lastPublishTime   = 0;
@@ -88,8 +91,9 @@ void setup() {
   pinMode(BUZZER_PIN, OUTPUT);
 
   // ADC attenuation for analog pins (0 – 3.3V full range)
-  analogSetPinAttenuation(PH_PIN,        ADC_11db);
-  analogSetPinAttenuation(TURBIDITY_PIN, ADC_11db);
+  analogSetPinAttenuation(PH_PIN,           ADC_11db);
+  analogSetPinAttenuation(TURBIDITY_PIN,    ADC_11db);
+  analogSetPinAttenuation(ANALOG_LEVEL_PIN, ADC_11db);
 
   // Outputs OFF by default
   digitalWrite(RELAY_PIN,  LOW);
@@ -107,6 +111,7 @@ void loop() {
 
   readPhSensor();
   readTurbiditySensor();
+  readAnalogWaterLevel();
   readWaterLevelSensors();
   checkLeakage();
   controlSystem();
@@ -192,6 +197,35 @@ void readTurbiditySensor() {
   Serial.print(sensorVoltage, 3);
   Serial.print("V | NTU: ");
   Serial.println(currentTurbidity, 1);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Reads analog water level sensor on GPIO 39
+ * Outputs raw ADC (0–4095) and percentage (0–100%)
+ * Higher water level → higher voltage → higher ADC value
+ */
+void readAnalogWaterLevel() {
+  int rawSum = 0;
+  for (int i = 0; i < numSamples; i++) {
+    rawSum += analogRead(ANALOG_LEVEL_PIN);
+    delay(10);
+  }
+  currentWaterLevelRaw = rawSum / numSamples;
+
+  // Map ADC (0–4095) to percentage (0–100%)
+  // Adjust min/max ADC values based on your sensor's dry/full readings
+  const int ADC_DRY  = 0;     // ADC reading when sensor is completely dry
+  const int ADC_FULL = 4095;  // ADC reading when sensor is fully submerged
+  currentWaterLevelPct = ((float)(currentWaterLevelRaw - ADC_DRY) / (ADC_FULL - ADC_DRY)) * 100.0;
+  if (currentWaterLevelPct < 0)   currentWaterLevelPct = 0;
+  if (currentWaterLevelPct > 100) currentWaterLevelPct = 100;
+
+  Serial.print("[Analog Level] Raw ADC: ");
+  Serial.print(currentWaterLevelRaw);
+  Serial.print(" | Percentage: ");
+  Serial.print(currentWaterLevelPct, 1);
+  Serial.println("%");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -287,13 +321,15 @@ void publishSensorData() {
     http.begin(serverEndpoint);
     http.addHeader("Content-Type", "application/json");
 
-    StaticJsonDocument<256> doc;
-    doc["ph"]              = currentPh;
-    doc["turbidity"]       = currentTurbidity;
-    doc["waterLevel"]      = currentWaterLevel;   // now in cm
-    doc["leakageDetected"] = leakageDetected;
-    doc["relayStatus"]     = relayState;
-    doc["buzzerStatus"]    = buzzerState;
+    StaticJsonDocument<300> doc;
+    doc["ph"]               = currentPh;
+    doc["turbidity"]        = currentTurbidity;
+    doc["waterLevel"]       = currentWaterLevel;     // cm from digital sensors
+    doc["waterLevelRaw"]    = currentWaterLevelRaw;  // raw ADC 0–4095
+    doc["waterLevelPct"]    = currentWaterLevelPct;  // percentage 0–100%
+    doc["leakageDetected"]  = leakageDetected;
+    doc["relayStatus"]      = relayState;
+    doc["buzzerStatus"]     = buzzerState;
 
     String body;
     serializeJson(doc, body);
