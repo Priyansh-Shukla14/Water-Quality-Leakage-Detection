@@ -95,7 +95,7 @@ app.post('/api/sensors/data', (req, res) => {
     historyData.shift();
   }
 
-  console.log(`[Sensor Update] pH: ${ph}, Turbidity: ${turbidity} NTU, Water Level: ${waterLevel}%, Leakage: ${leakageDetected}`);
+  console.log(`[Sensor Update] pH: ${ph}, Turbidity: ${turbidity} NTU, Water Level: ${waterLevel} cm, Leakage: ${leakageDetected}`);
 
   res.json({
     success: true,

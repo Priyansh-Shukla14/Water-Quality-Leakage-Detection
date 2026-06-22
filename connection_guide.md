@@ -67,7 +67,7 @@ This scales 4.5V → ~3.0V which is safe for the ESP32.
 
 ## PART 3 — Firmware Configuration
 
-Open [water_quality_esp32.ino](file:///c:/Users/DARSHIL%20PATEL/OneDrive/Desktop/IOT%20PBL/Water-Quality-Leakage-Detection/firmware/water_quality_esp32.ino) and update these two lines:
+Open [water_quality_esp32.ino](file:///d:/water%20level%20detection%20and%20quality%20test/firmware/water_quality_esp32.ino) and update these two lines:
 
 ```cpp
 const char* ssid     = "YOUR_WIFI_SSID";      // ← Type your WiFi name here
@@ -77,7 +77,7 @@ const char* password = "YOUR_WIFI_PASSWORD";   // ← Type your WiFi password he
 > [!IMPORTANT]
 > The server endpoint is already pre-configured with your PC's IP address:
 > ```cpp
-> const char* serverEndpoint = "http://192.168.0.110:3001/api/sensors/data";
+> const char* serverEndpoint = "http://10.243.110.149:3001/api/sensors/data";
 > ```
 > Make sure your ESP32 and your PC are connected to the **same WiFi network**.
 
@@ -88,7 +88,7 @@ const char* password = "YOUR_WIFI_PASSWORD";   // ← Type your WiFi password he
 Open a **new terminal** in the project folder and run:
 
 ```bash
-cd "c:\Users\DARSHIL PATEL\OneDrive\Desktop\IOT PBL\Water-Quality-Leakage-Detection"
+cd "d:\water level detection and quality test"
 node server.js
 ```
 
@@ -96,7 +96,7 @@ You should see:
 ```
 ==================================================
 🌊 AquaGuard Backend listening on port 3001
-👉 ESP32 should POST data to: http://192.168.0.110:3001/api/sensors/data
+👉 ESP32 should POST data to: http://10.243.110.149:3001/api/sensors/data
 ==================================================
 ```
 
@@ -110,11 +110,11 @@ You should see:
 Open a **second terminal** and run:
 
 ```bash
-cd "c:\Users\DARSHIL PATEL\OneDrive\Desktop\IOT PBL\Water-Quality-Leakage-Detection"
+cd "d:\water level detection and quality test"
 npm run dev
 ```
 
-Then open your browser at **[http://localhost:5174](http://localhost:5174)**
+Then open your browser at **[http://localhost:5173](http://localhost:5173)**
 
 ---
 

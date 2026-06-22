@@ -37,7 +37,9 @@ export async function getSystemStatus() {
   const result = await apiService.get('/api/system/status');
   
   if (result.success) {
-    return result;
+    // Unwrap backend's { success, data: {...} } envelope
+    const statusData = result.data?.data ?? result.data;
+    return { success: true, data: statusData };
   }
   
   return {

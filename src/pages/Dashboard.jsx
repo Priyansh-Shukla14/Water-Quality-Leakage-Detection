@@ -214,8 +214,8 @@ export default function Dashboard({ data, loading, isMock, onRefresh }) {
           <ProgressBar value={Math.min((data?.turbidity || 0) / 50 * 100, 100)} color={turbColor} />
         </MetricCard>
 
-        <MetricCard icon={Waves} title="Water Level" value={data?.waterLevel?.toFixed(1)} unit="%" color={levelColor} subtitle="Normal: > 30%">
-          <ProgressBar value={data?.waterLevel} color={levelColor} />
+        <MetricCard icon={Waves} title="Water Level" value={data?.waterLevel?.toFixed(0)} unit="cm" color={levelColor} subtitle="Full: 100 cm | Empty: 0 cm">
+          <ProgressBar value={(data?.waterLevel / 100) * 100} color={levelColor} />
         </MetricCard>
       </div>
 

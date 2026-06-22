@@ -47,7 +47,11 @@ export async function getLatestSensorData() {
   
   if (result.success) {
     useMockData = false;
-    return result;
+    // Backend wraps response as { success: true, data: {...} }
+    // apiService wraps again as { success: true, data: backendResponse }
+    // So actual sensor object is at result.data.data
+    const sensorData = result.data?.data ?? result.data;
+    return { success: true, data: sensorData };
   }
   
   // Fallback to mock data with simulated variations
@@ -82,7 +86,9 @@ export async function getSensorHistory(hours = 24) {
   const result = await apiService.get('/api/sensors/history', { hours });
   
   if (result.success) {
-    return result;
+    // Unwrap backend's { success, data: [...] } envelope
+    const historyArray = result.data?.data ?? result.data;
+    return { success: true, data: historyArray };
   }
   
   // Fallback to mock history
