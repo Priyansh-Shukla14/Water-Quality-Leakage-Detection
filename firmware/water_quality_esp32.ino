@@ -292,12 +292,11 @@ void publishSensorData() {
     http.begin(serverEndpoint);
     http.addHeader("Content-Type", "application/json");
 
-    StaticJsonDocument<300> doc;
+    StaticJsonDocument<256> doc;
     doc["ph"]               = currentPh;
     doc["turbidity"]        = currentTurbidity;
-    doc["waterLevel"]       = currentWaterLevel;     // cm from digital sensors
-    doc["waterLevelRaw"]    = currentWaterLevelRaw;  // raw ADC 0–4095
-    doc["waterLevelPct"]    = currentWaterLevelPct;  // percentage 0–100%
+    doc["waterLevel"]       = currentWaterLevel;    // cm from D32/D33
+    doc["waterLevelPct"]    = currentWaterLevelPct; // percentage derived from cm
     doc["leakageDetected"]  = leakageDetected;
     doc["relayStatus"]      = relayState;
     doc["buzzerStatus"]     = buzzerState;
