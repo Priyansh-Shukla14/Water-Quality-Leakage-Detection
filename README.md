@@ -1,53 +1,78 @@
-# 🌊 AquaGuard — Water Quality & Leakage Monitoring System
+# 🌊 AquaGuard — Water Quality Monitoring System
 
-A modern, real-time IoT dashboard for monitoring water quality parameters and detecting water tank leakage using ESP32 microcontroller with advanced sensor integration.
+A modern, real-time IoT dashboard for monitoring water quality parameters using an ESP32 microcontroller with advanced sensor integration.
 
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
 ![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite)
-![Tailwind](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss)
+![Node.js](https://img.shields.io/badge/Node.js-Express-339933?logo=nodedotjs)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
 ## 📋 Project Overview
 
-This system monitors water quality and detects water tank leakage in real time using IoT sensors connected to an **ESP32** microcontroller. The dashboard provides live sensor readings, analytics, and alert management through a modern web interface.
+This system monitors water quality in real time using IoT sensors connected to an **ESP32** microcontroller. The dashboard provides live sensor readings, analytics, and alert management through a modern web interface. The backend server receives data directly from ESP32 — **no simulated data**.
 
 ## 🔧 Hardware Components
 
-| Component | Purpose |
-|-----------|---------|
-| ESP32 | Main microcontroller (WiFi-enabled) |
-| pH Sensor | Measures water acidity/alkalinity |
-| Turbidity Sensor | Measures water clarity (NTU) |
-| Water Level Sensor | Monitors tank water level (%) |
-| Buzzer | Audio alert for critical conditions |
-| Relay Module | Automated valve/pump control |
+| Component | GPIO | Purpose |
+|-----------|------|---------|
+| ESP32 | — | Main microcontroller (WiFi-enabled) |
+| pH Sensor | GPIO 14 | Measures water acidity/alkalinity |
+| SEN0189 Turbidity | GPIO 35 | Measures water clarity (NTU) via voltage divider |
+| Water Level Sensor | GPIO 32 | Detects water presence (HIGH = wet) |
+| Relay Module | GPIO 25 | LED indicator — RED (dry) / GREEN (water detected) |
+| Buzzer | GPIO 26 | Audio alert on water detection / leakage |
+
+### ⚡ Pin Wiring Summary
+
+```
+SEN0189 Turbidity → 5V, GND, Signal → 10kΩ/20kΩ divider → GPIO 35
+pH Sensor         → 5V, GND, PO → GPIO 14
+Water Level       → 3.3V, GND, Signal → GPIO 32
+Relay Module      → 5V, GND, IN → GPIO 25
+Buzzer (+)        → GPIO 26 | Buzzer (−) → GND
+```
+
+### ⚠️ Voltage Divider for Turbidity Sensor
+
+The SEN0189 outputs up to 4.5V but ESP32 GPIO is 3.3V max:
+
+```
+Sensor Signal ──┬── 10kΩ ──── GPIO 35
+                │
+               20kΩ
+                │
+               GND
+```
+
+## 🤖 Firmware Behavior
+
+| Condition | Relay LED | Buzzer |
+|-----------|-----------|--------|
+| No water | 🔴 RED | Silent |
+| Water detected | 🟢 GREEN | Beeping every 500ms |
+| Leakage detected | 🟢 GREEN | Beeps for **5 seconds**, then auto OFF |
+
+> **Leakage logic:** Water was previously detected, now sensor is dry → leakage alert triggers. Buzzer and relay LED activate for 5 seconds then automatically reset.
 
 ## 🖥️ Dashboard Features
 
 ### 1. Landing Page
 - Project overview with engineering-themed UI
-- Features, tech stack, and team sections
-- System architecture visualization
+- Features, tech stack, and system architecture
 
 ### 2. Real-Time Monitoring Dashboard
-- **pH Value** — with color-coded status
+- **pH Value** — color-coded status (7.4–7.6 range)
 - **Turbidity (NTU)** — with progress bar
-- **Water Level (%)** — with fill indicator
+- **Water Level** — wet/dry detection
 - **Water Quality Status** — Good / Moderate / Poor
-- **Leakage Detection** — with warning banner
-- **Relay & Buzzer Status** — ON/OFF indicators
+- **Relay & Buzzer Status** — live ON/OFF indicators
 
-### 3. Leakage Detection Module
-- Real-time leakage status banner
-- Event history table
-- Threshold configuration display
-
-### 4. Water Quality Analysis
-- Color-coded quality cards (Good/Moderate/Poor)
+### 3. Water Quality Analysis
+- Color-coded quality cards (Good / Moderate / Poor)
 - pH scale visualization
 - Quality criteria breakdown
 
-### 5. Analytics
+### 4. Analytics
 - pH trend chart
 - Turbidity trend chart
 - Water level trend chart
@@ -57,108 +82,104 @@ This system monitors water quality and detects water tank leakage in real time u
 
 ### Prerequisites
 - Node.js 18+
-- npm or yarn
+- Arduino IDE with ESP32 board package
 
-### Installation
+### Backend Server
 
 ```bash
-# Clone the repository
-git clone https://github.com/Priyansh-Shukla14/water-quality-monitoring.git
-cd water-quality-monitoring
-
 # Install dependencies
 npm install
 
-# Start development server
+# Start backend (port 3001)
+node server.js
+```
+
+### Frontend Dashboard
+
+```bash
+# Start Vite dev server (port 5173)
 npm run dev
 ```
 
-The dashboard will be available at `http://localhost:5173`
+Open `http://localhost:5173` in your browser.
+
+### ESP32 Firmware
+
+1. Open `firmware/water_quality_esp32.ino` in Arduino IDE
+2. Update WiFi credentials:
+   ```cpp
+   const char* ssid     = "YOUR_WIFI_NAME";
+   const char* password = "YOUR_WIFI_PASSWORD";
+   ```
+3. Update server IP:
+   ```cpp
+   const char* serverEndpoint = "http://<YOUR_PC_IP>:3001/api/sensors/data";
+   ```
+4. Upload to ESP32 → open Serial Monitor at **115200 baud**
 
 ## 📡 REST API Endpoints
 
-The ESP32 communicates with the dashboard via these HTTP endpoints:
-
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/api/sensors/latest` | Get latest sensor readings |
-| `GET` | `/api/sensors/history` | Get historical sensor data |
-| `POST` | `/api/sensors/data` | ESP32 sends new sensor data |
-| `GET` | `/api/system/status` | Get system/connection status |
+| `GET` | `/api/sensors/latest` | Latest sensor readings |
+| `GET` | `/api/sensors/history` | Historical data (last 50 readings) |
+| `POST` | `/api/sensors/data` | ESP32 submits sensor data |
+| `GET` | `/api/system/status` | System uptime & connection status |
 | `POST` | `/api/relay/control` | Control relay (ON/OFF) |
 | `POST` | `/api/buzzer/control` | Control buzzer (ON/OFF) |
 
-### ESP32 Sample Payload
+### ESP32 Payload Format
 
 ```json
 {
-  "ph": 7.24,
-  "turbidity": 3.8,
-  "waterLevel": 72,
-  "temperature": 26.5
+  "ph": 7.5,
+  "turbidity": 6.2,
+  "waterLevel": 100,
+  "waterLevelPct": 100,
+  "waterDetected": true,
+  "leakageDetected": false,
+  "relayStatus": true,
+  "buzzerStatus": true
 }
 ```
 
 ## 📁 Folder Structure
 
 ```
-src/
-├── charts/              # Recharts chart components
-│   ├── PhChart.jsx
-│   ├── TurbidityChart.jsx
-│   └── WaterLevelChart.jsx
-├── components/
-│   ├── common/          # Shared components
-│   │   └── ThemeToggle.jsx
-│   ├── dashboard/       # Dashboard-specific components
-│   │   ├── LeakageAlert.jsx
-│   │   ├── ProgressBar.jsx
-│   │   ├── SensorCard.jsx
-│   │   ├── StatusIndicator.jsx
-│   │   └── WaterQualityCard.jsx
-│   └── layout/          # Layout components
-│       ├── DashboardLayout.jsx
-│       ├── Navbar.jsx
-│       └── Sidebar.jsx
-├── hooks/               # Custom React hooks
-│   ├── useSensorData.js
-│   └── useTheme.js
-├── pages/               # Page components
-│   ├── Analytics.jsx
-│   ├── Dashboard.jsx
-│   ├── LandingPage.jsx
-│   ├── LeakageDetection.jsx
-│   └── WaterQuality.jsx
-├── services/            # API service layer
-│   ├── api.js
-│   ├── sensorService.js
-│   └── systemService.js
-├── utils/               # Utilities & constants
-│   ├── constants.js
-│   ├── helpers.js
-│   └── mockData.js
-├── App.jsx
-├── index.css
-└── main.jsx
+├── firmware/
+│   └── water_quality_esp32.ino   # ESP32 Arduino firmware
+├── src/
+│   ├── charts/                   # Recharts chart components
+│   ├── components/
+│   │   ├── common/               # Shared UI components
+│   │   ├── dashboard/            # Dashboard cards & widgets
+│   │   └── layout/               # Navbar, Sidebar, Layout
+│   ├── hooks/                    # useSensorData, useTheme
+│   ├── pages/                    # Dashboard, WaterQuality, Analytics, LandingPage
+│   ├── services/                 # API service layer
+│   └── utils/                   # Constants, helpers, mockData
+├── server.js                     # Express backend (port 3001)
+├── connection_guide.md           # Hardware wiring reference
+└── README.md
 ```
 
 ## 🎨 UI Features
 
 - **Dark/Light mode** with system preference detection
 - **Blue/Teal IoT theme** with gradient accents
-- **Glass morphism** cards with blur effects
+- **Glassmorphism** cards with blur effects
 - **Micro-animations** for hover, entrance, and pulse effects
-- **Responsive design** for mobile, tablet, and desktop
 - **Collapsible sidebar** for dashboard navigation
 
 ## 🛠️ Tech Stack
 
 - **React 19** — UI framework
 - **Vite 6** — Build tool
-- **Tailwind CSS 4** — Utility-first CSS
+- **Vanilla CSS** — Custom styling with CSS variables
 - **Recharts** — Chart library
 - **React Router** — Client-side routing
 - **Lucide React** — Icon library
+- **Express.js** — Backend API server
 
 ## 📜 License
 
@@ -166,4 +187,4 @@ This project is part of an engineering project for academic purposes.
 
 ---
 
-Built with ❤️ by the Water Quality Monitoring Team
+Built with ❤️ by Priyansh Shukla

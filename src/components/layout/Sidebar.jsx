@@ -1,7 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
-  Droplets,
   FlaskConical,
   BarChart3,
   Wifi,
@@ -11,10 +10,9 @@ import {
 } from 'lucide-react';
 
 const navItems = [
-  { label: 'Overview',          path: '/dashboard',           icon: LayoutDashboard, end: true },
-  { label: 'Leakage Detection', path: '/dashboard/leakage',   icon: Droplets },
-  { label: 'Water Quality',     path: '/dashboard/quality',   icon: FlaskConical },
-  { label: 'Analytics',         path: '/dashboard/analytics', icon: BarChart3 },
+  { label: 'Overview',      path: '/dashboard',           icon: LayoutDashboard, end: true },
+  { label: 'Water Quality', path: '/dashboard/quality',   icon: FlaskConical },
+  { label: 'Analytics',     path: '/dashboard/analytics', icon: BarChart3 },
 ];
 
 export default function Sidebar({ isMock, collapsed, onToggleCollapse }) {

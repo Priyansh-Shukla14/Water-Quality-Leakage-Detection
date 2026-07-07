@@ -1,4 +1,4 @@
-# 🌊 AquaGuard — Full Connection & Setup Guide
+# 🌊 AquaGuard — Connection & Setup Guide (Single Sensor Edition)
 
 ## System Architecture
 
@@ -8,15 +8,28 @@
 
 ---
 
+## How It Works
+
+| Condition | Water Level Sensor | Relay Module LED | Buzzer |
+|---|---|---|---|
+| **No water** | GPIO 32 = LOW | 🔴 **RED** (relay OFF) | 🔇 Silent |
+| **Water detected** | GPIO 32 = HIGH | 🟢 **GREEN** (relay ON) | 🔊 Beeping every 500ms |
+
+> The relay module has a **built-in LED** that visually changes:
+> - **RED** when relay is de-energized (no water)
+> - **GREEN** when relay is energized (water detected)
+
+---
+
 ## PART 1 — Arduino IDE: Libraries to Install
 
-Open **Arduino IDE** → Go to **Tools → Manage Libraries** and install each of these:
+Open **Arduino IDE** → Go to **Tools → Manage Libraries** and install:
 
-| Library Name | Version | Install via |
-|---|---|---|
-| **ArduinoJson** by Benoit Blanchon | `v6.x` (latest) | Library Manager |
-| **WiFi** (ESP32 built-in) | Built-in | Already included with ESP32 board package |
-| **HTTPClient** (ESP32 built-in) | Built-in | Already included with ESP32 board package |
+| Library Name | Version |
+|---|---|
+| **ArduinoJson** by Benoit Blanchon | `v6.x` (latest) |
+| **WiFi** (ESP32 built-in) | Already included |
+| **HTTPClient** (ESP32 built-in) | Already included |
 
 ### Install ESP32 Board Package (if not done yet)
 1. Go to **File → Preferences**
@@ -32,30 +45,40 @@ Open **Arduino IDE** → Go to **Tools → Manage Libraries** and install each o
 
 ## PART 2 — Hardware Wiring
 
-### 📌 Pin Connections
+### 📌 Pin Connections (Single Sensor Setup)
 
 | Component | Component Pin | ESP32 Pin | Notes |
 |---|---|---|---|
-| **SEN0189 Turbidity** | VCC | 5V (Vin) | Do NOT use 3.3V |
+| **SEN0189 Turbidity** | VCC | 5V (Vin) | ⚠️ Must use 5V, NOT 3.3V |
 | | GND | GND | |
-| | Signal | GPIO 34 (via voltage divider) | ⚠️ Use 10kΩ + 20kΩ resistors (see below) |
-| **Water Level Sensor 1** (Bottom/Low) | VCC | 3.3V | |
+| | Signal | GPIO 35 | Via 10kΩ + 20kΩ voltage divider (see below) |
+| **pH Sensor Module** | V+ | 5V (Vin) | |
+| | G | GND | |
+| | PO | GPIO 14 | Analog probe output |
+| **Water Level Sensor** | VCC | 3.3V | Single sensor only |
 | | GND | GND | |
-| | Signal | GPIO 32 | LOW = submerged |
-| **Water Level Sensor 2** (Top/High) | VCC | 3.3V | |
-| | GND | GND | |
-| | Signal | GPIO 33 | LOW = submerged |
+| | Signal | GPIO 32 | HIGH = water touching sensor |
 | **Relay Module** | VCC | 5V (Vin) | |
 | | GND | GND | |
-| | IN (Control) | GPIO 25 | HIGH = Relay ON |
-| **Buzzer** | + | GPIO 26 | HIGH = Buzzer ON |
+| | IN | GPIO 25 | HIGH = Relay ON → LED turns GREEN |
+| **Buzzer** | + | GPIO 26 | HIGH = Beep |
 | | − | GND | |
 
-### ⚠️ Voltage Divider for SEN0189 Signal Pin
-The SEN0189 turbidity sensor outputs **up to 4.5V** but ESP32 GPIO pins are only **3.3V tolerant**. You MUST use a voltage divider:
+### ⚡ Relay LED Behavior
+```
+GPIO 25 = LOW  → Relay OFF → LED = 🔴 RED   (no water)
+GPIO 25 = HIGH → Relay ON  → LED = 🟢 GREEN  (water detected)
+```
+
+The relay module's **built-in LED** is your visual indicator:
+- When the water level sensor is **DRY** → LED stays **RED**
+- When water **touches the sensor** → LED flips to **GREEN** + Buzzer beeps
+
+### ⚠️ Voltage Divider for SEN0189 Turbidity Signal Pin
+The SEN0189 outputs **up to 4.5V** but ESP32 GPIO is **3.3V max**. Use a voltage divider:
 
 ```
-Sensor Signal Pin ──┬── 10kΩ ──── GPIO 34 (ESP32)
+Sensor Signal Pin ──┬── 10kΩ ──── GPIO 35 (ESP32)
                     │
                    20kΩ
                     │
@@ -67,7 +90,7 @@ This scales 4.5V → ~3.0V which is safe for the ESP32.
 
 ## PART 3 — Firmware Configuration
 
-Open [water_quality_esp32.ino](file:///d:/water%20level%20detection%20and%20quality%20test/firmware/water_quality_esp32.ino) and update these two lines:
+Open `firmware/water_quality_esp32.ino` and update these two lines:
 
 ```cpp
 const char* ssid     = "YOUR_WIFI_SSID";      // ← Type your WiFi name here
@@ -75,17 +98,18 @@ const char* password = "YOUR_WIFI_PASSWORD";   // ← Type your WiFi password he
 ```
 
 > [!IMPORTANT]
-> The server endpoint is already pre-configured with your PC's IP address:
+> Update the server IP to your computer's local IP address:
 > ```cpp
-> const char* serverEndpoint = "http://10.243.110.149:3001/api/sensors/data";
+> const char* serverEndpoint = "http://<YOUR_PC_IP>:3001/api/sensors/data";
 > ```
-> Make sure your ESP32 and your PC are connected to the **same WiFi network**.
+> Find your PC's IP: open PowerShell → type `ipconfig` → look for **IPv4 Address**
+> Make sure your ESP32 and PC are on the **same WiFi network**.
 
 ---
 
 ## PART 4 — Running the Backend Server
 
-Open a **new terminal** in the project folder and run:
+Open a **terminal** in the project folder and run:
 
 ```bash
 cd "d:\water level detection and quality test"
@@ -96,12 +120,16 @@ You should see:
 ```
 ==================================================
 🌊 AquaGuard Backend listening on port 3001
-👉 ESP32 should POST data to: http://10.243.110.149:3001/api/sensors/data
+👉 ESP32 should POST data to: http://<YOUR_IP>:3001/api/sensors/data
+🤖 Simulated readings will start in ~3s (until ESP32 connects)
 ==================================================
+[Simulation] 🔄 No ESP32 detected — starting simulated readings...
+[Simulated ] pH: 7.7 | Turbidity: 6.42 NTU | DRY → Relay LED=RED | Buzzer=SILENT | Quality: Moderate
+[Simulated ] pH: 7.9 | Turbidity: 8.15 NTU | WET → Relay LED=GREEN | Buzzer=BEEPING | Quality: Moderate
 ```
 
 > [!NOTE]
-> Keep this terminal open the entire time. If you close it, the ESP32 data won't reach the dashboard.
+> Keep this terminal open the entire time. The simulation alternates WET/DRY every 3 seconds so you can preview the dashboard behavior.
 
 ---
 
@@ -121,20 +149,34 @@ Then open your browser at **[http://localhost:5173](http://localhost:5173)**
 ## PART 6 — Upload Firmware to ESP32
 
 1. Open `firmware/water_quality_esp32.ino` in **Arduino IDE**
-2. Select the correct port: **Tools → Port → COMx** (whichever port your ESP32 is on)
+2. Select your port: **Tools → Port → COMx**
 3. Click the **Upload** button (→)
-4. Open **Serial Monitor** (Tools → Serial Monitor, baud rate: **115200**)
-5. You should see:
-   ```
-   Connecting to WiFi: YOUR_SSID
-   ...
-   WiFi Connected successfully!
-   IP Address: 192.168.0.xxx
-   Turbidity Voltage: 4.10V, NTU: 2.3
-   Water Level: 50.0%
-   Sending POST data: {"ph":7.0,"turbidity":2.3,...}
-   HTTP Response code: 200
-   ```
+4. Open **Serial Monitor** (baud rate: **115200**)
+
+You should see output like:
+```
+🔗 Connecting to WiFi: YOUR_SSID
+...
+✅ WiFi Connected!
+📡 IP Address: 192.168.0.105
+──────────────────────────────────────────────
+💡 Relay LED: RED = No Water | GREEN = Water Detected
+🔊 Buzzer:    Silent = No Water | Beeping = Water Detected
+──────────────────────────────────────────────
+[pH]        Raw: 2048 | Voltage: 1.650V | pH: 7.50
+[Turbidity] Raw: 3800 | GPIO: 3.058V | Sensor: 4.587V | NTU: 0.0
+[Water Lvl] Sensor: 🔴 DRY (No Water) | Leakage: NO ✅
+📤 POST → {"ph":7.5,"turbidity":0.0,"waterLevel":0,"waterLevelPct":0,"waterDetected":false,...}
+✅ HTTP 200
+```
+
+When you **dip the sensor in water**:
+```
+[Water Lvl] Sensor: 💧 WET (Water Detected) | Leakage: NO ✅
+📤 POST → {"ph":7.5,"turbidity":0.0,"waterLevel":100,"waterLevelPct":100,"waterDetected":true,...}
+✅ HTTP 200
+```
+→ **Relay LED turns GREEN** + **Buzzer starts beeping**!
 
 ---
 
@@ -144,8 +186,9 @@ Then open your browser at **[http://localhost:5173](http://localhost:5173)**
 |---|---|
 | ✅ Backend running | Terminal shows `listening on port 3001` |
 | ✅ ESP32 connected | Serial Monitor shows `WiFi Connected` |
-| ✅ Data flowing | Backend terminal prints `[Sensor Update] pH: ...` every 3 seconds |
-| ✅ Dashboard live | Browser at `localhost:5174` shows **real values** (no "Demo" badge) |
+| ✅ Data flowing | Backend terminal prints real ESP32 data every 3 seconds |
+| ✅ Dashboard live | Browser at `localhost:5173` shows **real values** (no "Demo" badge) |
+| ✅ Sensor test | Touch sensor to water → Relay LED turns GREEN + Buzzer beeps |
 
 ---
 
@@ -153,17 +196,27 @@ Then open your browser at **[http://localhost:5173](http://localhost:5173)**
 
 | Problem | Solution |
 |---|---|
-| ESP32 can't connect to WiFi | Double-check SSID and password — they are case-sensitive |
-| HTTP Response code: -1 | ESP32 can't reach the server — ensure both are on the same WiFi. Check PC firewall |
-| Dashboard still shows "Demo" | Backend server is not running. Run `node server.js` in a new terminal |
-| Turbidity always 0 | Check voltage divider wiring. Verify sensor is powered by 5V |
-| Water level always 10% | Check that float switch GND and VCC are connected correctly |
+| ESP32 can't connect to WiFi | Double-check SSID and password — case-sensitive |
+| HTTP Response code: -1 | ESP32 can't reach server — ensure both on same WiFi. Check PC firewall |
+| Dashboard still shows "Demo" | Backend not running. Run `node server.js` |
+| Relay LED always RED | Check GPIO 25 wire. Verify 5V to relay VCC |
+| Buzzer not beeping | Check GPIO 26 wire. Verify buzzer polarity |
+| Sensor never reads WET | Ensure 3.3V to sensor VCC. Check GPIO 32 connection |
+| Turbidity always 0 | Check voltage divider wiring. Verify 5V to sensor |
 
 ---
 
-## Port Summary (Quick Reference)
+## Quick Reference
 
-| Port | What it does |
+| Port | Purpose |
 |---|---|
-| **5174** | Vite dev server — view the dashboard in your browser |
-| **3001** | Express backend — receives ESP32 data & answers frontend API calls |
+| **5173** | Vite dev server — view the dashboard in browser |
+| **3001** | Express backend — receives ESP32 data & serves frontend API |
+
+| GPIO | Component | Signal |
+|---|---|---|
+| GPIO 14 | pH Sensor (PO) | Analog in |
+| GPIO 35 | Turbidity Sensor | Analog in (via divider) |
+| GPIO 32 | Water Level Sensor | Digital in (HIGH = wet) |
+| GPIO 25 | Relay Module (IN) | Digital out (HIGH = LED GREEN) |
+| GPIO 26 | Buzzer (+) | Digital out (HIGH = beep) |

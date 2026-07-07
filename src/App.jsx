@@ -5,7 +5,6 @@ import Navbar from './components/layout/Navbar';
 import DashboardLayout from './components/layout/DashboardLayout';
 import LandingPage from './pages/LandingPage';
 import Dashboard from './pages/Dashboard';
-import LeakageDetection from './pages/LeakageDetection';
 import WaterQuality from './pages/WaterQuality';
 import Analytics from './pages/Analytics';
 
@@ -31,10 +30,6 @@ export default function App() {
                   onRefresh={refresh}
                 />
               }
-            />
-            <Route
-              path="leakage"
-              element={<LeakageDetection data={latestData} />}
             />
             <Route
               path="quality"

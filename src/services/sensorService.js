@@ -44,19 +44,23 @@ let lastMockData = { ...mockLatestData };
  */
 export async function getLatestSensorData() {
   const result = await apiService.get('/api/sensors/latest');
-  
+
   if (result.success) {
     useMockData = false;
-    // Backend wraps response as { success: true, data: {...} }
-    // apiService wraps again as { success: true, data: backendResponse }
-    // So actual sensor object is at result.data.data
+
+    // Server returns: { success: true, data: { ph, turbidity, ... } }
+    // apiService wraps it as:  { success: true, data: { success: true, data: {...} } }
+    // So real sensor data is at result.data.data
     const sensorData = result.data?.data ?? result.data;
-    return { success: true, data: sensorData };
+
+    // Always show real ESP32 data — no isMock flag when server is reachable
+    return { success: true, data: sensorData, isMock: false };
   }
-  
-  // Fallback to mock data with simulated variations
+
+  // Only use mock data when server is completely unreachable
   useMockData = true;
   lastMockData = generateRealtimeData(lastMockData);
+  console.warn('[sensorService] Server unreachable — showing mock data');
   return { success: true, data: lastMockData, isMock: true };
 }
 

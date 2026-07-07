@@ -214,8 +214,8 @@ export default function Dashboard({ data, loading, isMock, onRefresh }) {
           <ProgressBar value={Math.min((data?.turbidity || 0) / 50 * 100, 100)} color={turbColor} />
         </MetricCard>
 
-        <MetricCard icon={Waves} title="Water Level" value={data?.waterLevel?.toFixed(0)} unit="cm" color={levelColor} subtitle={`${data?.waterLevelPct?.toFixed(1) ?? '0.0'}% full — Full: 100 cm | Empty: 0 cm`}>
-          <ProgressBar value={data?.waterLevelPct ?? 0} color={levelColor} />
+        <MetricCard icon={Waves} title="Water Level Sensor" value={data?.waterDetected ? '💧 WET' : '🔴 DRY'} color={data?.waterDetected ? '#10b981' : '#94a3b8'} subtitle={data?.waterDetected ? 'Water detected — Relay LED = GREEN, Buzzer = BEEPING' : 'No water — Relay LED = RED, Buzzer = SILENT'}>
+          <ProgressBar value={data?.waterDetected ? 100 : 0} color={data?.waterDetected ? '#10b981' : '#64748b'} />
         </MetricCard>
       </div>
 
@@ -225,8 +225,8 @@ export default function Dashboard({ data, loading, isMock, onRefresh }) {
           <QualityCard quality={data?.quality} ph={data?.ph} turbidity={data?.turbidity} />
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <StatusBadge label="Relay Module" isActive={data?.relayStatus} activeColor="#06b6d4" />
-            <StatusBadge label="Buzzer" isActive={data?.buzzerStatus} activeColor="#f59e0b" activeText="ACTIVE" inactiveText="SILENT" />
+            <StatusBadge label="Relay Module (LED)" isActive={data?.relayStatus} activeColor="#10b981" activeText="🟢 GREEN (Water ON)" inactiveText="🔴 RED (No Water)" />
+            <StatusBadge label="Buzzer" isActive={data?.buzzerStatus} activeColor="#f59e0b" activeText="BEEPING 🔊" inactiveText="SILENT 🔇" />
             <StatusBadge label="Leakage" isActive={data?.leakageDetected} activeColor="#ef4444" activeText="DETECTED" inactiveText="NORMAL" />
             <StatusBadge
               label="Water Quality"

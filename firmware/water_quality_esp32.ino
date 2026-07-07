@@ -1,28 +1,38 @@
 /**
- * 🌊 AquaGuard — ESP32 Firmware for Water Quality & Leakage Detection
+ * 🌊 AquaGuard — ESP32 Firmware (v2.0 — Single Sensor)
  *
- * Hardware Pin Mapping:
+ * SIMPLIFIED HARDWARE SETUP:
+ * ─────────────────────────────────────────────────────────────────────────────
  * 1. SEN0189 Turbidity Sensor:
- *    - VCC    -> 5V (Vin)
- *    - GND    -> GND
- *    - Signal -> GPIO 35 (via 10kΩ/20kΩ voltage divider — sensor outputs up to 4.5V)
+ *    - VCC    → 5V (Vin)
+ *    - GND    → GND
+ *    - Signal → GPIO 35  (via 10kΩ/20kΩ voltage divider — sensor outputs up to 4.5V)
  *
- * 2. pH Sensor Module (Pins: V+, G, G, PO, GO):
- *    - V+  -> 5V (Vin)
- *    - G   -> GND  (use only ONE G pin)
- *    - G   -> leave unconnected (second G, not needed)
- *    - PO  -> GPIO 14  (Probe Output — analog signal)
- *    - GO  -> leave unconnected (digital output, not used)
+ * 2. pH Sensor Module:
+ *    - V+  → 5V (Vin)
+ *    - G   → GND
+ *    - PO  → GPIO 14   (analog probe output)
  *
- * 3. Two Water Level Sensors (Conductivity / Resistive):
- *    - Sensor 1 (Low Level/Bottom): GPIO 32 (INPUT — HIGH when submerged)
- *    - Sensor 2 (High Level/Top):   GPIO 33 (INPUT — HIGH when submerged)
+ * 3. Water Level Sensor (ONE sensor only):
+ *    - VCC    → 3.3V
+ *    - GND    → GND
+ *    - Signal → GPIO 32  (HIGH when water touches sensor)
  *
- * 4. Relay Module (Controls Pump/Valve):
- *    - VCC -> 5V (Vin) | GND -> GND | IN -> GPIO 25
+ * 4. Relay Module (Controls LED indicator & external device):
+ *    - VCC → 5V (Vin)
+ *    - GND → GND
+ *    - IN  → GPIO 25
+ *    ⚡ RELAY BEHAVIOR:
+ *       Water detected  → GPIO 25 = HIGH → Relay ENERGIZED → LED turns GREEN
+ *       No water        → GPIO 25 = LOW  → Relay OFF       → LED stays RED (normally-closed)
  *
- * 5. Buzzer (Audible Alarm):
- *    - (+) -> GPIO 26 | (-) -> GND
+ * 5. Buzzer:
+ *    - (+) → GPIO 26
+ *    - (-) → GND
+ *    ⚡ BUZZER BEHAVIOR:
+ *       Water detected → Beeps rapidly (every 500 ms)
+ *       No water       → Silent
+ * ─────────────────────────────────────────────────────────────────────────────
  */
 
 #include <WiFi.h>
@@ -30,301 +40,289 @@
 #include <ArduinoJson.h>
 
 // ─── WiFi Configuration ──────────────────────────────────────────────────────
-const char* ssid     = "Priyansh's S24 Ultra";
-const char* password = "nhi bataunga";
+const char* ssid     = "q";      // ← Your WiFi name
+const char* password = "00000000";               // ← Your WiFi password
 
 // ─── Server Endpoint ─────────────────────────────────────────────────────────
-// PC's IP address — ESP32 and PC must be on the same WiFi network
-const char* serverEndpoint = "http://10.243.110.149:3001/api/sensors/data";
+// Replace <YOUR_PC_IP> with your computer's local IP address (e.g. 192.168.1.5)
+const char* serverEndpoint = "http://10.192.21.149:3001/api/sensors/data";
 
 // ─── Pin Definitions ─────────────────────────────────────────────────────────
-#define PH_PIN                14   // Analog — pH sensor (PO pin)
-#define TURBIDITY_PIN         35   // Analog — SEN0189 turbidity
-#define LEVEL_SENSOR_LOW_PIN  32   // Digital — bottom water level sensor
-#define LEVEL_SENSOR_HIGH_PIN 33   // Digital — top water level sensor
-#define RELAY_PIN             25   // Digital OUT — relay/pump control
-#define BUZZER_PIN            26   // Digital OUT — buzzer alarm
-
-// ─── Tank Configuration (adjust to your actual tank height) ──────────────────
-const float TANK_HEIGHT_CM  = 100.0; // Total tank height in cm
-const float LEVEL_EMPTY_CM  =   0.0; // Water level when tank is empty
-const float LEVEL_HALF_CM   =  50.0; // Water level when sensor 1 (bottom) is submerged
-const float LEVEL_FULL_CM   = 100.0; // Water level when both sensors are submerged
+#define PH_PIN            14   // Analog — pH sensor output
+#define TURBIDITY_PIN     35   // Analog — SEN0189 turbidity (via voltage divider)
+#define LEVEL_SENSOR_PIN  32   // Digital — Single water level sensor (HIGH = water detected)
+#define RELAY_PIN         25   // Digital OUT — Relay module (HIGH = Relay ON = LED GREEN)
+#define BUZZER_PIN        26   // Digital OUT — Buzzer (HIGH = Beep)
 
 // ─── pH Calibration ──────────────────────────────────────────────────────────
-// Adjust OFFSET if your sensor reads differently at known pH values
-// pH 7 buffer solution should produce ~2.5V at sensor board output
-const float PH_NEUTRAL_VOLTAGE = 2.5;   // Voltage corresponding to pH 7
-const float PH_SENSITIVITY     = 0.18;  // Volts per pH unit (typical for most boards)
+const float PH_NEUTRAL_VOLTAGE = 2.5;   // Voltage at pH 7 (calibrate with buffer solution)
+const float PH_SENSITIVITY     = 0.18;  // Volts per pH unit
 
 // ─── Sampling & Timing ───────────────────────────────────────────────────────
-const int   numSamples        = 20;
-const unsigned long publishInterval    = 3000;  // POST to server every 3 seconds
-const unsigned long levelCheckInterval = 10000; // Check for leakage every 10 seconds
-
-// ─── Leakage Threshold ───────────────────────────────────────────────────────
-const float LEAKAGE_THRESHOLD_DROP_CM = 30.0; // cm drop within interval = leak
+const int   numSamples       = 20;
+const unsigned long publishInterval = 3000;  // POST to server every 3 seconds
 
 // ─── State Variables ─────────────────────────────────────────────────────────
-float currentPh         = 7.0;
-float currentTurbidity  = 0.0;
-float currentWaterLevel = 0.0;   // in cm (from D32/D33)
-float currentWaterLevelPct = 0.0; // percentage derived from cm
-bool  relayState        = false;
-bool  buzzerState       = false;
-bool  leakageDetected   = false;
+float currentPh          = 7.0;
+float currentTurbidity   = 0.0;
+bool  waterDetected      = false;   // true when sensor touches water
+bool  relayState         = false;   // true = relay energized (LED GREEN)
+bool  buzzerState        = false;   // true = buzzer is beeping
+bool  leakageDetected    = false;
 
-float previousWaterLevel = 0.0;
-unsigned long lastPublishTime   = 0;
-unsigned long lastLevelCheckTime = 0;
+unsigned long lastPublishTime    = 0;
+unsigned long lastBuzzerToggle   = 0;
+bool buzzerToggle                = false;
+unsigned long leakageAlertStart  = 0;   // millis() when leakage alert began (0 = not active)
 
 // ═════════════════════════════════════════════════════════════════════════════
 void setup() {
   Serial.begin(115200);
 
-  // Pin Modes
-  pinMode(LEVEL_SENSOR_LOW_PIN,  INPUT);   // Active HIGH when submerged
-  pinMode(LEVEL_SENSOR_HIGH_PIN, INPUT);   // Active HIGH when submerged
+  // Pin modes
+  pinMode(LEVEL_SENSOR_PIN, INPUT);   // Water level: HIGH when submerged
   pinMode(RELAY_PIN,  OUTPUT);
   pinMode(BUZZER_PIN, OUTPUT);
 
-  // ADC attenuation for analog pins (0 – 3.3V full range)
+  // ADC attenuation for analog pins (0–3.3V)
   analogSetPinAttenuation(PH_PIN,        ADC_11db);
   analogSetPinAttenuation(TURBIDITY_PIN, ADC_11db);
 
-  // Outputs OFF by default
+  // Start with relay OFF (LED = RED) and buzzer silent
   digitalWrite(RELAY_PIN,  LOW);
   digitalWrite(BUZZER_PIN, LOW);
 
   connectToWiFi();
-  Serial.println("✅ AquaGuard System Initialized.");
+
+  Serial.println("✅ AquaGuard System Ready (Single Sensor Mode).");
+  Serial.println("──────────────────────────────────────────────");
+  Serial.println("💡 Relay LED: RED = No Water | GREEN = Water Detected");
+  Serial.println("🔊 Buzzer:    Silent = No Water | Beeping = Water Detected");
+  Serial.println("──────────────────────────────────────────────");
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
 void loop() {
+  // Reconnect WiFi if disconnected
   if (WiFi.status() != WL_CONNECTED) {
     connectToWiFi();
   }
 
+  // 1. Read all sensors
   readPhSensor();
   readTurbiditySensor();
-  readWaterLevelSensors();
-  checkLeakage();
+  readWaterLevelSensor();
+
+  // 2. Control relay & buzzer based on water detection
   controlSystem();
 
+  // 3. Publish data to server at interval
   if (millis() - lastPublishTime >= publishInterval) {
     publishSensorData();
     lastPublishTime = millis();
   }
 
-  delay(200);
+  delay(100);  // Small delay to prevent flooding
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 /**
- * Reads pH sensor on GPIO 36
- * Formula: pH = 7 + (neutralVoltage - actualVoltage) / sensitivity
+ * Reads pH sensor on GPIO 14
+ * Averages 20 samples and converts ADC value → voltage → pH
  */
 void readPhSensor() {
-  int rawSum = 0;
+  long rawSum = 0;
   for (int i = 0; i < numSamples; i++) {
     rawSum += analogRead(PH_PIN);
     delay(10);
   }
   int rawAvg = rawSum / numSamples;
 
-  // Convert 12-bit ADC to voltage (0 – 3.3V)
   float voltage = rawAvg * (3.3 / 4095.0);
-
-  // If sensor board outputs 5V scale, correct for 10k/20k divider
-  // float voltage = (rawAvg * (3.3 / 4095.0)) * 1.5;
-
-  // pH formula
   currentPh = 7.0 + (PH_NEUTRAL_VOLTAGE - voltage) / PH_SENSITIVITY;
 
-  // Clamp to valid range 0–14
-  if (currentPh < 0.0)  currentPh = 0.0;
-  if (currentPh > 14.0) currentPh = 14.0;
+  // Clamp to valid 0–14 range
+  currentPh = constrain(currentPh, 0.0, 14.0);
 
-  Serial.print("[pH] Raw ADC: ");
-  Serial.print(rawAvg);
-  Serial.print(" | Voltage: ");
-  Serial.print(voltage, 3);
-  Serial.print("V | pH: ");
-  Serial.println(currentPh, 2);
+  Serial.printf("[pH]        Raw: %d | Voltage: %.3fV | pH: %.2f\n", rawAvg, voltage, currentPh);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 /**
- * Reads SEN0189 turbidity sensor on GPIO 35
- * NTU formula valid for sensor voltage 2.5V – 4.2V
+ * Reads SEN0189 turbidity sensor on GPIO 35 (via 10kΩ/20kΩ divider)
+ * Converts raw ADC → voltage → NTU using datasheet polynomial
  */
 void readTurbiditySensor() {
-  int rawSum = 0;
+  long rawSum = 0;
   for (int i = 0; i < numSamples; i++) {
     rawSum += analogRead(TURBIDITY_PIN);
     delay(10);
   }
   int rawAvg = rawSum / numSamples;
 
-  // GPIO voltage (0 – 3.3V)
-  float voltage = rawAvg * (3.3 / 4095.0);
-
-  // Correct for 10kΩ/20kΩ divider → actual sensor output voltage
-  float sensorVoltage = voltage * 1.5;
+  float gpioVoltage   = rawAvg * (3.3 / 4095.0);
+  float sensorVoltage = gpioVoltage * 1.5;  // Undo voltage divider (10k/20k → ×1.5)
 
   if (sensorVoltage >= 4.2) {
-    currentTurbidity = 0.0;                 // Clear water
+    currentTurbidity = 0.0;  // Clear water
   } else if (sensorVoltage >= 2.5) {
     currentTurbidity = -1120.4 * (sensorVoltage * sensorVoltage)
                        + 5742.3 * sensorVoltage
                        - 4352.9;
     if (currentTurbidity < 0) currentTurbidity = 0.0;
   } else {
-    // Voltage out of range — proportional fallback
-    currentTurbidity = map(rawAvg, 4095, 0, 0, 3000);
+    currentTurbidity = (float)map(rawAvg, 4095, 0, 0, 3000);
   }
 
-  Serial.print("[Turbidity] Raw ADC: ");
-  Serial.print(rawAvg);
-  Serial.print(" | GPIO: ");
-  Serial.print(voltage, 3);
-  Serial.print("V | Sensor: ");
-  Serial.print(sensorVoltage, 3);
-  Serial.print("V | NTU: ");
-  Serial.println(currentTurbidity, 1);
+  Serial.printf("[Turbidity] Raw: %d | GPIO: %.3fV | Sensor: %.3fV | NTU: %.1f\n",
+                rawAvg, gpioVoltage, sensorVoltage, currentTurbidity);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 /**
- * Reads two resistive water level sensors (active HIGH = submerged)
- * Reports water level in cm AND percentage — no new wiring needed
+ * Reads a SINGLE water level sensor on GPIO 32.
  *
- * D32 (Low/Bottom) | D33 (High/Top) | cm  | %
- * ──────────────────────────────────────────────
- *   DRY             |  DRY           |  0  |  0%
- *   WET             |  DRY           | 50  | 50%
- *   WET             |  WET           | 100 | 100%
+ * The sensor has exposed conductive strips. When water bridges them,
+ * it pulls the signal HIGH.
+ *
+ *  GPIO 32 = LOW  → No water (dry)
+ *  GPIO 32 = HIGH → Water detected (sensor submerged)
+ *
+ * Leakage logic:
+ *  - If water was previously detected but is now gone → possible leak
  */
-void readWaterLevelSensors() {
-  bool lowSubmerged  = (digitalRead(LEVEL_SENSOR_LOW_PIN)  == HIGH);
-  bool highSubmerged = (digitalRead(LEVEL_SENSOR_HIGH_PIN) == HIGH);
+void readWaterLevelSensor() {
+  static bool previousWaterDetected = false;
 
-  Serial.print("[Water Level] D32: ");
-  Serial.print(lowSubmerged  ? "WET" : "DRY");
-  Serial.print(" | D33: ");
-  Serial.print(highSubmerged ? "WET" : "DRY");
+  waterDetected = (digitalRead(LEVEL_SENSOR_PIN) == HIGH);
 
-  if (highSubmerged && lowSubmerged) {
-    currentWaterLevel = LEVEL_FULL_CM;
-  } else if (!highSubmerged && lowSubmerged) {
-    currentWaterLevel = LEVEL_HALF_CM;
-  } else if (!highSubmerged && !lowSubmerged) {
-    currentWaterLevel = LEVEL_EMPTY_CM;
-  } else {
-    currentWaterLevel = LEVEL_HALF_CM;
-    Serial.print(" | WARNING: Sensor discrepancy!");
+  // Leakage: water was there before, now it's gone (sudden drop)
+  if (previousWaterDetected && !waterDetected) {
+    leakageDetected = true;
+    Serial.println("🚨 ALERT: Water level sensor went DRY — possible leak or drain!");
+  } else if (waterDetected) {
+    leakageDetected = false;  // Water present = no leakage concern
   }
 
-  // Derive percentage from cm — no extra sensor or wiring needed
-  currentWaterLevelPct = (currentWaterLevel / TANK_HEIGHT_CM) * 100.0;
+  previousWaterDetected = waterDetected;
 
-  Serial.print(" | ");
-  Serial.print(currentWaterLevel);
-  Serial.print(" cm | ");
-  Serial.print(currentWaterLevelPct, 1);
-  Serial.println("%");
+  Serial.printf("[Water Lvl] Sensor: %s | Leakage: %s\n",
+                waterDetected ? "💧 WET (Water Detected)" : "🔴 DRY (No Water)",
+                leakageDetected ? "YES ⚠️" : "NO ✅");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 /**
- * Detects leakage if water level drops > threshold when pump is OFF
- */
-void checkLeakage() {
-  if (millis() - lastLevelCheckTime >= levelCheckInterval) {
-    float drop = previousWaterLevel - currentWaterLevel;
-
-    if (!relayState && drop >= LEAKAGE_THRESHOLD_DROP_CM) {
-      leakageDetected = true;
-      Serial.println("🚨 ALERT: Water level dropped rapidly — possible leak!");
-    } else {
-      leakageDetected = false;
-    }
-
-    previousWaterLevel  = currentWaterLevel;
-    lastLevelCheckTime  = millis();
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-/**
- * Controls relay (pump) and buzzer based on sensor readings
+ * Controls Relay and Buzzer based on sensor readings.
+ *
+ * RELAY (LED Indicator):
+ *   Water touches sensor         → Relay ON  → LED GREEN  ✅
+ *   Leakage alert (first 5 sec) → Relay ON  → LED GREEN  🚨
+ *   Alert expired / no event    → Relay OFF → LED RED     🔴
+ *
+ * BUZZER:
+ *   Water touches sensor         → Beeps rapidly (every 500ms)
+ *   Leakage detected             → Beeps rapidly for 5 seconds, then OFF
+ *   No event                     → Silent
  */
 void controlSystem() {
-  // Relay: turn ON pump if tank is empty and no leak
-  if (currentWaterLevel <= LEVEL_EMPTY_CM && !leakageDetected) {
-    relayState = true;
-    digitalWrite(RELAY_PIN, HIGH);
-  }
-  // Relay: turn OFF if tank is full or leak detected
-  else if (currentWaterLevel >= LEVEL_FULL_CM || leakageDetected) {
-    relayState = false;
-    digitalWrite(RELAY_PIN, LOW);
+  unsigned long now = millis();
+
+  // ── Leakage Alert Timer ──────────────────────────────────────────────
+  // Start the 5-second alert clock the moment leakage is first detected
+  if (leakageDetected && leakageAlertStart == 0) {
+    leakageAlertStart = now;   // Stamp the start time
+    Serial.println("🚨 Leakage alert started — buzzer & relay GREEN for 5 seconds.");
   }
 
-  // Buzzer: ON if leakage or very turbid water
-  if (leakageDetected || currentTurbidity > 50.0) {
-    buzzerState = true;
-    digitalWrite(BUZZER_PIN, (millis() / 500) % 2);  // rapid beep
+  // Check whether the 5-second leakage alert window is still open
+  bool leakageAlertActive = (leakageAlertStart > 0) &&
+                             ((now - leakageAlertStart) < 5000);
+
+  // Once the 5-second window closes, clear leakage state so it doesn't re-trigger
+  if (leakageAlertStart > 0 && (now - leakageAlertStart) >= 5000) {
+    leakageDetected   = false;
+    leakageAlertStart = 0;
+    Serial.println("✅ Leakage alert ended — buzzer OFF, relay back to RED.");
+  }
+
+  // ── Relay / LED Control ─────────────────────────────────────────────
+  if (waterDetected || leakageAlertActive) {
+    relayState = true;
+    digitalWrite(RELAY_PIN, HIGH);  // LED GREEN — water present or leakage alert
   } else {
-    buzzerState = false;
+    relayState = false;
+    digitalWrite(RELAY_PIN, LOW);   // LED RED — idle
+  }
+
+  // ── Buzzer Control ───────────────────────────────────────────────────
+  if (waterDetected || leakageAlertActive) {
+    buzzerState = true;
+    // Rapid beeping: toggle every 500ms
+    if (now - lastBuzzerToggle >= 500) {
+      buzzerToggle = !buzzerToggle;
+      digitalWrite(BUZZER_PIN, buzzerToggle ? HIGH : LOW);
+      lastBuzzerToggle = now;
+    }
+  } else {
+    // No event — buzzer silent
+    buzzerState  = false;
+    buzzerToggle = false;
     digitalWrite(BUZZER_PIN, LOW);
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 /**
- * POSTs sensor data as JSON to the backend server
+ * POSTs all sensor data as JSON to the backend Node.js server
  */
 void publishSensorData() {
-  if (WiFi.status() == WL_CONNECTED) {
-    HTTPClient http;
-    http.begin(serverEndpoint);
-    http.addHeader("Content-Type", "application/json");
-
-    StaticJsonDocument<256> doc;
-    doc["ph"]               = currentPh;
-    doc["turbidity"]        = currentTurbidity;
-    doc["waterLevel"]       = currentWaterLevel;    // cm from D32/D33
-    doc["waterLevelPct"]    = currentWaterLevelPct; // percentage derived from cm
-    doc["leakageDetected"]  = leakageDetected;
-    doc["relayStatus"]      = relayState;
-    doc["buzzerStatus"]     = buzzerState;
-
-    String body;
-    serializeJson(doc, body);
-
-    Serial.print("📤 POST: ");
-    Serial.println(body);
-
-    int code = http.POST(body);
-    if (code > 0) {
-      Serial.print("✅ HTTP ");
-      Serial.println(code);
-    } else {
-      Serial.print("❌ POST failed: ");
-      Serial.println(code);
-    }
-    http.end();
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("❌ WiFi not connected — skipping POST.");
+    return;
   }
+
+  // waterLevel in cm: 100 if water detected, 0 if dry
+  float waterLevelCm  = waterDetected ? 100.0 : 0.0;
+  float waterLevelPct = waterDetected ? 100.0 : 0.0;
+
+  HTTPClient http;
+  http.begin(serverEndpoint);
+  http.addHeader("Content-Type", "application/json");
+
+  StaticJsonDocument<256> doc;
+  doc["ph"]              = currentPh;
+  doc["turbidity"]       = currentTurbidity;
+  doc["waterLevel"]      = waterLevelCm;
+  doc["waterLevelPct"]   = waterLevelPct;
+  doc["waterDetected"]   = waterDetected;
+  doc["leakageDetected"] = leakageDetected;
+  doc["relayStatus"]     = relayState;
+  doc["buzzerStatus"]    = buzzerState;
+
+  String body;
+  serializeJson(doc, body);
+
+  Serial.print("📤 POST → ");
+  Serial.println(body);
+
+  int code = http.POST(body);
+  if (code > 0) {
+    Serial.printf("✅ HTTP %d\n", code);
+  } else {
+    Serial.printf("❌ POST failed: %d\n", code);
+  }
+  http.end();
+
+  Serial.println("──────────────────────────────────────────────");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 /**
- * Connects to WiFi with retry logic
+ * Connects to WiFi with retry logic (up to 20 attempts)
  */
 void connectToWiFi() {
-  Serial.print("Connecting to WiFi: ");
+  Serial.print("🔗 Connecting to WiFi: ");
   Serial.println(ssid);
   WiFi.begin(ssid, password);
 
@@ -337,9 +335,9 @@ void connectToWiFi() {
 
   if (WiFi.status() == WL_CONNECTED) {
     Serial.println("\n✅ WiFi Connected!");
-    Serial.print("IP Address: ");
+    Serial.print("📡 IP Address: ");
     Serial.println(WiFi.localIP());
   } else {
-    Serial.println("\n❌ WiFi connection failed. Will retry...");
+    Serial.println("\n❌ WiFi connection failed. Will retry on next loop...");
   }
 }

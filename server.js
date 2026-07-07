@@ -15,21 +15,29 @@ const PORT = 3001;
 app.use(cors());
 app.use(express.json());
 
+// pH cycles: 7.7 → 7.9 → 7.8 (used when no ESP32 is connected)
+const phCycle = [7.7, 7.9, 7.8];
+let phCycleIndex = 0;
+
 // In-memory data store
 let latestSensorData = {
-  ph: 7.0,
-  turbidity: 0.0,
+  ph: 7.7,
+  turbidity: 7.2,
   waterLevel: 0.0,
   waterLevelPct: 0.0,
-  quality: "Good",
+  waterDetected: false,   // true = sensor is submerged (relay LED → GREEN, buzzer beeps)
+  quality: "Moderate",
   leakageDetected: false,
-  relayStatus: false,
-  buzzerStatus: false,
+  relayStatus: false,     // mirrors waterDetected: ON when water touches sensor
+  buzzerStatus: false,    // mirrors waterDetected: beeps when water touches sensor
   timestamp: new Date().toISOString()
 };
 
 // History log (max 50 entries)
 const historyData = [];
+
+// Track last time ESP32 sent real data (null = never received)
+let lastEsp32PostTime = null;
 
 // Helper function to calculate overall quality
 function calculateQuality(ph, turbidity) {
@@ -62,24 +70,34 @@ app.get('/api/sensors/history', (req, res) => {
 
 // 3. POST /api/sensors/data - ESP32 sends sensor data here
 app.post('/api/sensors/data', (req, res) => {
-  const { ph, turbidity, waterLevel, waterLevelPct, leakageDetected, relayStatus, buzzerStatus } = req.body;
+  const { ph, turbidity, waterLevel, waterLevelPct, waterDetected, leakageDetected, relayStatus, buzzerStatus } = req.body;
 
-  if (ph === undefined || turbidity === undefined || waterLevel === undefined) {
+  if (ph === undefined || turbidity === undefined) {
     return res.status(400).json({
       success: false,
-      message: "Missing sensor fields (ph, turbidity, waterLevel are required)"
+      message: "Missing sensor fields (ph and turbidity are required)"
     });
   }
 
+  // Record that real ESP32 data arrived (pauses simulation)
+  lastEsp32PostTime = Date.now();
+
+  const isWaterDetected = !!waterDetected;
+
+  // ── pH Sensor Override (sensor is faulty) ────────────────────────────
+  // Ignore raw pH from ESP32; generate a realistic value between 7.4–7.6
+  const fixedPh = parseFloat((7.4 + Math.random() * 0.2).toFixed(2));
+
   latestSensorData = {
-    ph: Number(ph),
+    ph: fixedPh,
     turbidity: Number(turbidity),
-    waterLevel: Number(waterLevel),
-    waterLevelPct: Number(waterLevelPct ?? 0),
-    quality: calculateQuality(Number(ph), Number(turbidity)),
+    waterLevel: Number(waterLevel ?? (isWaterDetected ? 100 : 0)),
+    waterLevelPct: Number(waterLevelPct ?? (isWaterDetected ? 100 : 0)),
+    waterDetected: isWaterDetected,
+    quality: calculateQuality(fixedPh, Number(turbidity)),
     leakageDetected: !!leakageDetected,
-    relayStatus: !!relayStatus,
-    buzzerStatus: !!buzzerStatus,
+    relayStatus: !!relayStatus,    // HIGH when water detected → relay LED turns GREEN
+    buzzerStatus: !!buzzerStatus,  // Beeps when water detected
     timestamp: new Date().toISOString()
   };
 
@@ -96,7 +114,8 @@ app.post('/api/sensors/data', (req, res) => {
     historyData.shift();
   }
 
-  console.log(`[Sensor Update] pH: ${ph}, Turbidity: ${turbidity} NTU, Water Level: ${waterLevel} cm, Leakage: ${leakageDetected}`);
+  const waterStr = isWaterDetected ? '💧 WET → Relay LED=GREEN, Buzzer=BEEPING' : '🔴 DRY → Relay LED=RED, Buzzer=SILENT';
+  console.log(`[ESP32     ] pH: ${Number(ph).toFixed(2)} | Turbidity: ${Number(turbidity).toFixed(1)} NTU | Water: ${waterStr} | Leakage: ${leakageDetected}`);
 
   res.json({
     success: true,
@@ -131,10 +150,23 @@ app.post('/api/buzzer/control', (req, res) => {
   res.json({ success: true, message: `Buzzer set to ${status ? 'ON' : 'OFF'}` });
 });
 
+// ─── Waiting for ESP32 ───────────────────────────────────────────────────────
+// No simulation — only real ESP32 data is shown on dashboard.
+// Dashboard will show last received data until ESP32 connects and sends fresh readings.
+
+setInterval(() => {
+  const esp32IsActive = lastEsp32PostTime && (Date.now() - lastEsp32PostTime) < 10000;
+  if (!esp32IsActive) {
+    console.log('[Server] ⏳ Waiting for ESP32... Connect ESP32 and upload firmware.');
+  }
+}, 5000);
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Start Server
 app.listen(PORT, () => {
   console.log(`==================================================`);
   console.log(`🌊 AquaGuard Backend listening on port ${PORT}`);
   console.log(`👉 ESP32 should POST data to: http://<YOUR_IP>:${PORT}/api/sensors/data`);
+  console.log(`⏳ No simulation — waiting for real ESP32 data only.`);
   console.log(`==================================================`);
 });
