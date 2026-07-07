@@ -1,5 +1,5 @@
 import {
-  FlaskConical, Eye, Waves,
+  FlaskConical, Eye,
   RefreshCw, Clock, Zap, Volume2,
   CheckCircle, AlertTriangle,
 } from 'lucide-react';
@@ -212,10 +212,6 @@ export default function Dashboard({ data, loading, isMock, onRefresh }) {
 
         <MetricCard icon={Eye} title="Turbidity" value={data?.turbidity?.toFixed(1)} unit="NTU" color={turbColor} subtitle="Good: < 5 NTU">
           <ProgressBar value={Math.min((data?.turbidity || 0) / 50 * 100, 100)} color={turbColor} />
-        </MetricCard>
-
-        <MetricCard icon={Waves} title="Water Level Sensor" value={data?.waterDetected ? '💧 WET' : '🔴 DRY'} color={data?.waterDetected ? '#10b981' : '#94a3b8'} subtitle={data?.waterDetected ? 'Water detected — Relay LED = GREEN, Buzzer = BEEPING' : 'No water — Relay LED = RED, Buzzer = SILENT'}>
-          <ProgressBar value={data?.waterDetected ? 100 : 0} color={data?.waterDetected ? '#10b981' : '#64748b'} />
         </MetricCard>
       </div>
 

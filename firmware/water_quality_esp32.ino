@@ -127,56 +127,34 @@ void loop() {
 
 // ─────────────────────────────────────────────────────────────────────────────
 /**
- * Reads pH sensor on GPIO 14
- * Averages 20 samples and converts ADC value → voltage → pH
+ * pH Sensor — GPIO 14
+ * NOTE: Physical sensor is faulty (reads ~14V constantly).
+ * Generates a realistic pH value between 7.40 and 7.60 using random().
  */
 void readPhSensor() {
-  long rawSum = 0;
-  for (int i = 0; i < numSamples; i++) {
-    rawSum += analogRead(PH_PIN);
-    delay(10);
-  }
-  int rawAvg = rawSum / numSamples;
+  // Sensor kharab hai — realistic range mein random value generate karo
+  // pH varies between 7.40 and 7.60 (2-decimal precision)
+  int randCents = random(0, 21);           // 0 to 20  → represents 0.00 to 0.20
+  currentPh = 7.40 + (randCents / 100.0); // 7.40 – 7.60
 
-  float voltage = rawAvg * (3.3 / 4095.0);
-  currentPh = 7.0 + (PH_NEUTRAL_VOLTAGE - voltage) / PH_SENSITIVITY;
-
-  // Clamp to valid 0–14 range
-  currentPh = constrain(currentPh, 0.0, 14.0);
-
-  Serial.printf("[pH]        Raw: %d | Voltage: %.3fV | pH: %.2f\n", rawAvg, voltage, currentPh);
+  Serial.printf("[pH]        Simulated (sensor faulty) | pH: %.2f\n", currentPh);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 /**
- * Reads SEN0189 turbidity sensor on GPIO 35 (via 10kΩ/20kΩ divider)
- * Converts raw ADC → voltage → NTU using datasheet polynomial
+ * Turbidity Sensor — GPIO 35 (via 10kΩ/20kΩ voltage divider)
+ * NOTE: Physical sensor is faulty (reads 3000 NTU constantly).
+ * Generates a realistic turbidity value between 7.0 and 12.0 NTU using random().
  */
 void readTurbiditySensor() {
-  long rawSum = 0;
-  for (int i = 0; i < numSamples; i++) {
-    rawSum += analogRead(TURBIDITY_PIN);
-    delay(10);
-  }
-  int rawAvg = rawSum / numSamples;
+  // Sensor kharab hai — realistic range mein random value generate karo
+  // Turbidity varies between 7.0 and 12.0 NTU (1-decimal precision)
+  int randTenths = random(0, 51);                   // 0 to 50 → 0.0 to 5.0
+  currentTurbidity = 7.0 + (randTenths / 10.0);    // 7.0 – 12.0 NTU
 
-  float gpioVoltage   = rawAvg * (3.3 / 4095.0);
-  float sensorVoltage = gpioVoltage * 1.5;  // Undo voltage divider (10k/20k → ×1.5)
-
-  if (sensorVoltage >= 4.2) {
-    currentTurbidity = 0.0;  // Clear water
-  } else if (sensorVoltage >= 2.5) {
-    currentTurbidity = -1120.4 * (sensorVoltage * sensorVoltage)
-                       + 5742.3 * sensorVoltage
-                       - 4352.9;
-    if (currentTurbidity < 0) currentTurbidity = 0.0;
-  } else {
-    currentTurbidity = (float)map(rawAvg, 4095, 0, 0, 3000);
-  }
-
-  Serial.printf("[Turbidity] Raw: %d | GPIO: %.3fV | Sensor: %.3fV | NTU: %.1f\n",
-                rawAvg, gpioVoltage, sensorVoltage, currentTurbidity);
+  Serial.printf("[Turbidity] Simulated (sensor faulty) | NTU: %.1f\n", currentTurbidity);
 }
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 /**

@@ -84,17 +84,13 @@ app.post('/api/sensors/data', (req, res) => {
 
   const isWaterDetected = !!waterDetected;
 
-  // ── pH Sensor Override (sensor is faulty) ────────────────────────────
-  // Ignore raw pH from ESP32; generate a realistic value between 7.4–7.6
-  const fixedPh = parseFloat((7.4 + Math.random() * 0.2).toFixed(2));
-
   latestSensorData = {
-    ph: fixedPh,
+    ph: Number(ph),
     turbidity: Number(turbidity),
     waterLevel: Number(waterLevel ?? (isWaterDetected ? 100 : 0)),
     waterLevelPct: Number(waterLevelPct ?? (isWaterDetected ? 100 : 0)),
     waterDetected: isWaterDetected,
-    quality: calculateQuality(fixedPh, Number(turbidity)),
+    quality: calculateQuality(Number(ph), Number(turbidity)),
     leakageDetected: !!leakageDetected,
     relayStatus: !!relayStatus,    // HIGH when water detected → relay LED turns GREEN
     buzzerStatus: !!buzzerStatus,  // Beeps when water detected
