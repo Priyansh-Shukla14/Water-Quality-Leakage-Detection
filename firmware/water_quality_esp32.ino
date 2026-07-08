@@ -40,12 +40,12 @@
 #include <ArduinoJson.h>
 
 // ─── WiFi Configuration ──────────────────────────────────────────────────────
-const char* ssid     = "q";      // ← Your WiFi name
+const char* ssid     = "Q";      // ← Your WiFi name
 const char* password = "00000000";               // ← Your WiFi password
 
 // ─── Server Endpoint ─────────────────────────────────────────────────────────
 // Replace <YOUR_PC_IP> with your computer's local IP address (e.g. 192.168.1.5)
-const char* serverEndpoint = "http://10.192.21.149:3001/api/sensors/data";
+const char* serverEndpoint = "http:// 10.91.112.149:3001/api/sensors/data";
 
 // ─── Pin Definitions ─────────────────────────────────────────────────────────
 #define PH_PIN            14   // Analog — pH sensor output
@@ -74,6 +74,11 @@ unsigned long lastPublishTime    = 0;
 unsigned long lastBuzzerToggle   = 0;
 bool buzzerToggle                = false;
 unsigned long leakageAlertStart  = 0;   // millis() when leakage alert began (0 = not active)
+
+// ─── Water Detect Buzzer Timer (5 seconds only) ──────────────────────────────
+unsigned long waterBuzzerStart   = 0;   // millis() jab pehli baar pani mila
+bool waterBuzzerActive           = false; // buzzer 5-sec window ke andar hai?
+bool previousWaterDetectedMain   = false; // re-trigger ke liye track karo
 
 // ═════════════════════════════════════════════════════════════════════════════
 void setup() {
@@ -194,56 +199,80 @@ void readWaterLevelSensor() {
  * Controls Relay and Buzzer based on sensor readings.
  *
  * RELAY (LED Indicator):
- *   Water touches sensor         → Relay ON  → LED GREEN  ✅
- *   Leakage alert (first 5 sec) → Relay ON  → LED GREEN  🚨
- *   Alert expired / no event    → Relay OFF → LED RED     🔴
+ *   Water touches sensor          → Relay ON  → LED GREEN  ✅  (jab tak pani hai)
+ *   Leakage alert (first 5 sec)  → Relay ON  → LED GREEN  🚨
+ *   Alert expired / no event     → Relay OFF → LED RED     🔴
  *
- * BUZZER:
- *   Water touches sensor         → Beeps rapidly (every 500ms)
- *   Leakage detected             → Beeps rapidly for 5 seconds, then OFF
- *   No event                     → Silent
+ * BUZZER (5-Second Rule):
+ *   Pehli baar pani aaya         → 5 second beep, phir band
+ *   Pani gaya aur wapas aaya     → Fir se 5 second beep
+ *   Leakage detected             → 5 second beep, phir band
+ *   Koi event nahi               → Silent
  */
 void controlSystem() {
   unsigned long now = millis();
 
-  // ── Leakage Alert Timer ──────────────────────────────────────────────
-  // Start the 5-second alert clock the moment leakage is first detected
-  if (leakageDetected && leakageAlertStart == 0) {
-    leakageAlertStart = now;   // Stamp the start time
-    Serial.println("🚨 Leakage alert started — buzzer & relay GREEN for 5 seconds.");
+  // ── Water Detect: 5-Second Buzzer Timer ─────────────────────────────
+  // Jab pehli baar pani detect ho (ya pani gaya tha aur wapas aaya)
+  if (waterDetected && !previousWaterDetectedMain) {
+    // Nayi water detection — 5-second timer start karo
+    waterBuzzerStart  = now;
+    waterBuzzerActive = true;
+    Serial.println("💧 Pani detect hua — Buzzer 5 seconds ke liye bajega!");
   }
 
-  // Check whether the 5-second leakage alert window is still open
+  // Pani chala gaya — next baar ke liye reset karo
+  if (!waterDetected && previousWaterDetectedMain) {
+    waterBuzzerActive = false;
+    Serial.println("🔴 Pani nahi — Buzzer band.");
+  }
+
+  // 5-second window check karo
+  if (waterBuzzerActive && (now - waterBuzzerStart) >= 5000) {
+    waterBuzzerActive = false;
+    Serial.println("✅ 5 second ho gaye — Buzzer band (pani abhi bhi hai).");
+  }
+
+  previousWaterDetectedMain = waterDetected;
+
+  // ── Leakage Alert Timer ──────────────────────────────────────────────
+  if (leakageDetected && leakageAlertStart == 0) {
+    leakageAlertStart = now;
+    Serial.println("🚨 Leakage alert started — 5 seconds ke liye.");
+  }
+
   bool leakageAlertActive = (leakageAlertStart > 0) &&
                              ((now - leakageAlertStart) < 5000);
 
-  // Once the 5-second window closes, clear leakage state so it doesn't re-trigger
   if (leakageAlertStart > 0 && (now - leakageAlertStart) >= 5000) {
     leakageDetected   = false;
     leakageAlertStart = 0;
-    Serial.println("✅ Leakage alert ended — buzzer OFF, relay back to RED.");
+    Serial.println("✅ Leakage alert khatam — Buzzer band.");
   }
 
   // ── Relay / LED Control ─────────────────────────────────────────────
+  // Relay tab tak GREEN rahega jab tak pani hai (buzzer se alag)
   if (waterDetected || leakageAlertActive) {
     relayState = true;
-    digitalWrite(RELAY_PIN, HIGH);  // LED GREEN — water present or leakage alert
+    digitalWrite(RELAY_PIN, HIGH);  // LED GREEN
   } else {
     relayState = false;
-    digitalWrite(RELAY_PIN, LOW);   // LED RED — idle
+    digitalWrite(RELAY_PIN, LOW);   // LED RED
   }
 
-  // ── Buzzer Control ───────────────────────────────────────────────────
-  if (waterDetected || leakageAlertActive) {
+  // ── Buzzer Control (sirf 5-sec window mein) ──────────────────────────
+  bool shouldBuzz = waterBuzzerActive || leakageAlertActive;
+
+  if (shouldBuzz) {
     buzzerState = true;
-    // Rapid beeping: toggle every 500ms
+    // Rapid beeping: har 500ms pe toggle
     if (now - lastBuzzerToggle >= 500) {
       buzzerToggle = !buzzerToggle;
       digitalWrite(BUZZER_PIN, buzzerToggle ? HIGH : LOW);
       lastBuzzerToggle = now;
     }
   } else {
-    // No event — buzzer silent
+    // Koi event nahi ya 5-sec khatam — buzzer band
     buzzerState  = false;
     buzzerToggle = false;
     digitalWrite(BUZZER_PIN, LOW);
